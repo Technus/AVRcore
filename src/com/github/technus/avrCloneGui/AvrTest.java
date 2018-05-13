@@ -4,6 +4,7 @@ import com.github.technus.avrClone.AvrCore;
 import com.github.technus.avrClone.instructions.ExecutionEvent;
 import com.github.technus.avrClone.instructions.I_Instruction;
 import com.github.technus.avrClone.instructions.OperandLimit;
+import com.github.technus.avrClone.memory.program.ProgramException;
 import com.github.technus.avrCloneGui.Editors.IntegerEditor;
 import com.github.technus.avrCloneGui.dataMemory.IRefreshDataMemoryView;
 import com.github.technus.avrCloneGui.dataMemory.cpuTable.CpuTableModel;
@@ -16,7 +17,6 @@ import com.github.technus.avrCloneGui.programMemory.programTable.ProgramTableMod
 import com.github.technus.avrCloneGui.programMemory.programTable.ProgramTablePopup;
 import com.github.technus.avrCloneGui.registerFile.registerTable.RegisterTableModel;
 import com.github.technus.avrCloneGui.registerFile.registerTable.RegisterTablePopup;
-import com.sun.javaws.exceptions.InvalidArgumentException;
 import jsyntaxpane.components.LineNumbersRuler;
 import jsyntaxpane.syntaxkits.AsmSyntaxKit;
 
@@ -29,6 +29,7 @@ import java.util.ArrayList;
 
 public class AvrTest {
     private JEditorPane asm;
+    private AsmSyntaxKit kit;
 
     private JTable program;
     private ProgramTableModel programModel;
@@ -156,7 +157,7 @@ public class AvrTest {
         });
 
         LineNumbersRuler.enableASM(10);
-        asm.setEditorKit(new AsmSyntaxKit());
+        asm.setEditorKit(kit=new AsmSyntaxKit());
 
 
         JMenuItem item=new JMenuItem("Compile ASM");
@@ -165,8 +166,8 @@ public class AvrTest {
             try {
                 core.setProgramMemoryString(asm.getText());
                 refreshProgramMemory();
-            }catch (InvalidArgumentException ex){
-                JOptionPane.showMessageDialog(asm, ex.getRealMessage(), "Compiler thrown "+ex.getClass().getSimpleName()+"!", JOptionPane.ERROR_MESSAGE);
+            }catch (ProgramException ex){
+                JOptionPane.showMessageDialog(asm, ex.getMessage(), "Compiler thrown "+ex.getClass().getSimpleName()+"!", JOptionPane.ERROR_MESSAGE);
             }catch (Exception ex){
                 JOptionPane.showMessageDialog(asm, scrollThrowable(ex), "Compiler thrown "+ex.getClass().getSimpleName()+"!", JOptionPane.ERROR_MESSAGE);
             }
@@ -241,10 +242,6 @@ public class AvrTest {
             stringBuilder.append(limit.name).append(' ').append(limit.getPossibleValuesString()).append("\n");
         }
         limits.setText(stringBuilder.toString());
-    }
-
-    public void refreshASM(){
-        //asm.setText(asm.getText());
     }
 
     public static String printThrowable(Throwable t){

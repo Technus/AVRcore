@@ -116,30 +116,29 @@ public class ProgramMemory implements Cloneable{
         return stringBuilder.toString();
     }
 
-    private int compile(AvrCore core, boolean immersiveOperands, String... lines) throws Exception {
+    private void compile(AvrCore core, boolean immersiveOperands, String... lines) throws Exception {
         int i = 0;
-        int[] temp = new int[2];
+        int[] operandsReturn = new int[2];
         try {
             for (; i < lines.length; i++) {
                 String[] values = lines[i].replaceAll("^.*:\\s*","").replaceAll("\\s*;.*$","").replaceAll("\\s*,\\s*"," ").split(" ");
                 Integer id=registry.getId(values[0].toUpperCase());
                 if (id == null) {
-                    throw new InvalidMnemonic("Program is invalid! At line "+i);
+                    throw new InvalidMnemonic("Instruction " +values[0].toUpperCase()+ " At line "+i+" Mnemonic does not exist");
                 }
                 instructions[i] = id;
-                temp[0]=temp[1]=0;
+                operandsReturn[0]=operandsReturn[1]=0;
 
-                registry.getInstruction(instructions[i]).compile(core, this, i, immersiveOperands, temp, values);
+                registry.getInstruction(instructions[i]).compile(core, this, i, immersiveOperands, operandsReturn, values);
 
-                param0[i] = temp[0];
-                param1[i] = temp[1];
+                param0[i] = operandsReturn[0];
+                param1[i] = operandsReturn[1];
             }
         }catch (ProgramException e){
             throw e;
         }catch (Exception e){
             throw new ProgramException("Program is invalid! At line "+i,e);
         }
-        return i;
     }
 
     @Override

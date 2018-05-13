@@ -82,7 +82,7 @@ public class ProgramTableModel implements TableModel,IRefreshProgramMemoryView {
     }
 
     @Override
-    public void setValueAt(Object aValue, int rowIndex, int columnIndex) {//todo maybe make it better... so it does check limits???
+    public void setValueAt(Object aValue, int rowIndex, int columnIndex) {
         switch (columnIndex) {
             case 0:return;
             case 1:{

@@ -9,7 +9,7 @@ import javax.swing.event.TableModelEvent;
 import javax.swing.event.TableModelListener;
 import java.util.ArrayList;
 
-public class DataTableModel extends DataTableModelAbstract {//todo maybe add names
+public class DataTableModel extends DataTableModelAbstract {
     protected EventListenerList listenerList = new EventListenerList();
 
     public DataTableModel(AvrCore core, ArrayList<IRefreshDataMemoryView> dataMemoryViews){

@@ -1032,7 +1032,7 @@ public abstract class Instruction implements I_Instruction {
             },
             LD = new Instruction("LD",true) {
                 @Override
-                public void compile(AvrCore core, ProgramMemory programMemory, int addr, boolean immersive, int[] operandsReturn, String[] values) throws InvalidMnemonic{
+                public void compile(AvrCore core, ProgramMemory programMemory, int address, boolean immersive, int[] operandsReturn, String[] values) throws InvalidMnemonic{
                     throw new InvalidMnemonic("This LD is only a dummy!");
                 }
 
@@ -1801,7 +1801,7 @@ public abstract class Instruction implements I_Instruction {
             },
             SPM = new Instruction("SPM",true) {
                 @Override
-                public void compile(AvrCore core, ProgramMemory programMemory, int addr, boolean immersive, int[] operandsReturn, String[] values) throws InvalidMnemonic{
+                public void compile(AvrCore core, ProgramMemory programMemory, int address, boolean immersive, int[] operandsReturn, String[] values) throws InvalidMnemonic{
                     throw new InvalidMnemonic("This SPM is only a dummy!");
                 }
 
@@ -1811,7 +1811,7 @@ public abstract class Instruction implements I_Instruction {
             },
             ST = new Instruction("ST",true) {
                 @Override
-                public void compile(AvrCore core, ProgramMemory programMemory, int addr, boolean immersive, int[] operandsReturn, String[] values)  throws InvalidMnemonic{
+                public void compile(AvrCore core, ProgramMemory programMemory, int address, boolean immersive, int[] operandsReturn, String[] values)  throws InvalidMnemonic{
                     throw new InvalidMnemonic("This ST is only a dummy!");
                 }
 
@@ -2367,36 +2367,82 @@ public abstract class Instruction implements I_Instruction {
      *
      * @param core           core that is compiling
      * @param programMemory  target prog mem
-     * @param addr           current prog addr
+     * @param address           current prog address
      * @param immersive      be realistic
      * @param operandsReturn put data0 and data1 here
      * @param values         OPNAME DATA0 DATA1
      * @return is instruction valid
      */
     @Override
-    public void compile(AvrCore core, ProgramMemory programMemory, int addr, boolean immersive, int[] operandsReturn, String[] values) throws ProgramException {
-        int temp;
-        if (values.length > 1 && limit0 != null) {
-            try {
-                temp = Integer.parseInt(values[1]);
-            }catch (Exception e){
-                throw new InvalidOperand0("Program is invalid! At line "+addr+" Cannot Parse "+values[1]);
+    public void compile(AvrCore core, ProgramMemory programMemory, int address, boolean immersive, int[] operandsReturn, String[] values) throws ProgramException {
+        int temp=0;
+        InvalidOperand0 err0=null;
+        if (values.length > 1) {
+            if(limit0 == null){
+                err0 = new InvalidOperand0("Does not require operand 0");
             }
-            operandsReturn[0] = limit0.clamp(temp, addr, immersive);
-            if(temp!=operandsReturn[0]){
-                throw new InvalidOperand0("Program is invalid! At line "+addr+" Out of range "+temp+" clamped to: "+operandsReturn[0]);
+            if(err0==null) {
+                try {
+                    if (values[1].contains("0x") | values[1].contains("0X")) {
+                        values[1] = values[1].replaceAll("0[xX]", "");
+                        temp = Integer.parseInt(values[1], 16);
+                    } else if (values[1].contains("0b") | values[1].contains("0B")) {
+                        values[1] = values[1].replaceAll("0[bB]", "");
+                        temp = Integer.parseInt(values[1], 2);
+                    } else if (values[1].startsWith("-0") | values[1].startsWith("0")) {
+                        temp = Integer.parseInt(values[1], 8);
+                    } else {
+                        temp = Integer.parseInt(values[1], 10);
+                    }
+                } catch (Exception e) {
+                    err0 = new InvalidOperand0("Cannot Parse " + values[1]);
+                }
+                if (err0 == null) {
+                    operandsReturn[0] = limit0.clamp(temp, address, immersive);
+                    if (temp != operandsReturn[0]) {
+                        err0 = new InvalidOperand0("Out of range " + temp + " clamped to: " + operandsReturn[0]);
+                    }
+                }
             }
         }
-        if (values.length > 2 && limit1 != null) {
+        if (values.length > 2) {
+            if(limit1 == null){
+                if(err0==null){
+                    throw new InvalidOperand1("Instruction " +name+ " At line "+address+" Does not require operand 1");
+                }else {
+                    throw new InvalidOperands("Instruction " +name+ " At line "+address+"    OP0: "+err0.getMessage()+"    OP1: Does not require operand 1");
+                }
+            }
             try {
-                temp = Integer.parseInt(values[2]);
+                if(values[2].contains("0x")|values[2].contains("0X")){
+                    values[2]=values[2].replaceAll("0[xX]","");
+                    temp = Integer.parseInt(values[2],16);
+                }else if(values[2].contains("0b")|values[2].contains("0B")){
+                    values[2]=values[2].replaceAll("0[bB]","");
+                    temp = Integer.parseInt(values[2],2);
+                }else if(values[2].startsWith("-0")|values[2].startsWith("0")){
+                    temp = Integer.parseInt(values[2],8);
+                }else{
+                    temp = Integer.parseInt(values[2],10);
+                }
             }catch (Exception e){
-                throw new InvalidOperand1("Program is invalid! At line "+addr+" Cannot Parse "+values[2]);
+                if(err0==null){
+                    throw new InvalidOperand1("Instruction " +name+ " At line "+address+" Cannot Parse "+values[2]);
+                }else {
+                    throw new InvalidOperands("Instruction " +name+ " At line "+address+"    OP0: "+err0.getMessage()+"    OP1: Cannot Parse "+values[2]);
+                }
             }
-            operandsReturn[1] = limit1.clamp(temp, addr, immersive);
+            operandsReturn[1] = limit1.clamp(temp, address, immersive);
             if(temp!=operandsReturn[1]){
-                throw new InvalidOperand0("Program is invalid! At line "+addr+" Out of range "+temp+" clamped to: "+operandsReturn[1]);
+                if(err0==null){
+                    throw new InvalidOperand1("Instruction " +name+ " At line "+address+" Out of range "+temp+" clamped to: "+operandsReturn[1]);
+                }else {
+                    throw new InvalidOperands("Instruction " +name+ " At line "+address+"    OP0: "+err0.getMessage()+"    OP1: Out of range "+temp+" clamped to: "+operandsReturn[1]);
+                }
             }
+        }
+        if(err0!=null){
+            throw new InvalidOperand0("Instruction " +name+ " At line "+address+' '+err0.getMessage());
         }
     }
 

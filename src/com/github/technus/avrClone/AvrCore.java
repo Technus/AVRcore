@@ -172,12 +172,12 @@ public class AvrCore {
         return accessibleMemory.get(address);
     }
 
-    public boolean isDataRangeValid(int from,int to){
-        return accessibleMemory.nextClearBit(from)>to;
+    public boolean isDataRangeValid(int fromInclusive,int toExclusive){
+        return accessibleMemory.nextClearBit(fromInclusive)>=toExclusive;
     }
 
     public boolean isDataBlockValid(int offset,int size){
-        return accessibleMemory.nextClearBit(offset)>offset+size;
+        return accessibleMemory.nextClearBit(offset)>=offset+size;
     }
 
     public boolean setEepromMemory(EepromMemory eeprom) {
@@ -432,31 +432,49 @@ public class AvrCore {
 
     //region data bits
     public void setDataBits(int addr,int bitMask,boolean value){
-        dataMemory[addr] = value ? dataMemory[addr] | bitMask : dataMemory[addr] & ~bitMask;
+        if(accessibleMemory.get(addr)) {
+            dataMemory[addr] = value ? dataMemory[addr] | bitMask : dataMemory[addr] & ~bitMask;
+        }
     }
 
     public void setDataBits(int addr,int bitMask){
-        dataMemory[addr]|=bitMask;
+        if(accessibleMemory.get(addr)) {
+            dataMemory[addr] |= bitMask;
+        }
     }
 
     public void clearDataBits(int addr,int bitMask){
-        dataMemory[addr]&=~bitMask;
+        if(accessibleMemory.get(addr)) {
+            dataMemory[addr] &= ~bitMask;
+        }
     }
 
     public boolean getDataBitsOr(int addr, int bitMask) {
-        return (dataMemory[addr] & bitMask) != 0;
+        if(accessibleMemory.get(addr)) {
+            return (dataMemory[addr] & bitMask) != 0;
+        }
+        return false;
     }
 
     public boolean getDataBitsNotOr(int addr, int bitMask) {
-        return (dataMemory[addr] & bitMask) == 0;
+        if(accessibleMemory.get(addr)) {
+            return (dataMemory[addr] & bitMask) == 0;
+        }
+        return true;
     }
 
     public boolean getDataBitsNotAnd(int addr, int bitMask) {
-        return (dataMemory[addr] & bitMask) != bitMask;
+        if(accessibleMemory.get(addr)) {
+            return (dataMemory[addr] & bitMask) != bitMask;
+        }
+        return true;
     }
 
     public boolean getDataBitsAnd(int addr, int bitMask) {
-        return (dataMemory[addr] & bitMask) == bitMask;
+        if (accessibleMemory.get(addr)) {
+            return (dataMemory[addr] & bitMask) == bitMask;
+        }
+        return false;
     }
     //endregion
 

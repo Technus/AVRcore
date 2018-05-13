@@ -24,7 +24,6 @@ public class ProgramTablePopup extends JPopupMenu {
             if(test.core.getProgramMemory()!=null){
                 LineNumbersRuler.enableASM(16);
                 test.writeASM(test.core.getProgramMemory().getProgram(16));
-                test.refreshASM();
             }
         });
         add(item);
@@ -34,7 +33,6 @@ public class ProgramTablePopup extends JPopupMenu {
             if(test.core.getProgramMemory()!=null){
                 LineNumbersRuler.enableASM(8);
                 test.writeASM(test.core.getProgramMemory().getProgram(8));
-                test.refreshASM();
             }
         });
         add(item);
@@ -44,7 +42,6 @@ public class ProgramTablePopup extends JPopupMenu {
             if(test.core.getProgramMemory()!=null){
                 LineNumbersRuler.enableASM(2);
                 test.writeASM(test.core.getProgramMemory().getProgram(2));
-                test.refreshASM();
             }
         });
         add(item);
@@ -54,7 +51,6 @@ public class ProgramTablePopup extends JPopupMenu {
             if(test.core.getProgramMemory()!=null){
                 LineNumbersRuler.enableASM(10);
                 test.writeASM(test.core.getProgramMemory().getProgram(10));
-                test.refreshASM();
             }
         });
         add(item);
