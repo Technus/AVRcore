@@ -274,11 +274,11 @@ public class AvrCore {
     }
 
     public I_Instruction getInstruction(){
-        return instructionRegistry.getInstruction(getInstructionID());
+        return instructionRegistry.getInstruction(programMemory.instructions[programCounter]);
     }
 
     public I_Instruction getInstruction(int addr){
-        return instructionRegistry.getInstruction(getInstructionID(addr));
+        return instructionRegistry.getInstruction(programMemory.instructions[addr]);
     }
 
     public int getInstructionID(){
