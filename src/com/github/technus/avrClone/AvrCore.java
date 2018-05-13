@@ -31,10 +31,10 @@ public class AvrCore {
     private EepromMemory eepromMemory;
     public RemovableMemory<EepromMemory> eepromBackup;
 
-    public int[] dataMemory;
+    public volatile int[] dataMemory;
     public BitSet accessibleMemory;
 
-    public int[] registerFile=new int[32];
+    public volatile int[] registerFile=new int[32];
 
     private CPU_Registers cpuRegisters;
 
@@ -243,7 +243,7 @@ public class AvrCore {
         if(putRegistersBindings(cpu,"CPU")){
             cpuRegisters=cpu;
         }
-        invalidate();
+        checkValid();
         return true;
     }
 
@@ -255,14 +255,17 @@ public class AvrCore {
     //region programMemory
     public void setProgramMemoryString(String lines) throws Exception {
         this.programMemory = new ProgramMemory(this, lines.split("\\n"));
+        checkValid();
     }
 
     public void setProgramMemory(String... lines) throws Exception {
         this.programMemory = new ProgramMemory(this, lines);
+        checkValid();
     }
 
     public void setProgramMemory(int length) {
         this.programMemory = new ProgramMemory(this,length);
+        checkValid();
     }
 
     public ProgramMemory getProgramMemory() {
