@@ -3,6 +3,7 @@ package com.github.technus.avrCloneGui;
 import com.github.technus.avrClone.AvrCore;
 import com.github.technus.avrClone.instructions.ExecutionEvent;
 import com.github.technus.avrClone.instructions.I_Instruction;
+import com.github.technus.avrClone.instructions.InstructionRegistry;
 import com.github.technus.avrClone.instructions.OperandLimit;
 import com.github.technus.avrClone.memory.program.ProgramException;
 import com.github.technus.avrCloneGui.Editors.IntegerEditor;
@@ -47,6 +48,7 @@ public class AvrTest {
     private DataTableModel dataModel;
     private PresentationCellRenderer dataRenderer;
 
+    private JButton resetButton;
     private JButton stepButton;
     private JButton runButton;
 
@@ -54,8 +56,8 @@ public class AvrTest {
 
     private JPanel mainPanel;
 
+    private JComboBox<InstructionRegistry> registry;
     private JTextArea instructions;
-    private JButton resetButton;
     private JTextArea limits;
 
     public final AvrCore core;
@@ -180,8 +182,12 @@ public class AvrTest {
             asm.setText(core.getProgramMemory().getProgram(10));
         }
 
+        InstructionRegistry.REGISTRIES.forEach(registry::addItem);
+        registry.addActionListener(e -> refreshWithInstructionRegistry(registry.getItemAt(registry.getSelectedIndex())));
+        registry.setSelectedItem(core.getInstructionRegistry());
+
         refreshRegistersDataPc();
-        refreshInstructionRegistry();
+        refreshWithInstructionRegistry(core.getInstructionRegistry());
         refreshLimitsRegistry();
         refreshProgramMemory();
     }
@@ -212,10 +218,10 @@ public class AvrTest {
         programModel.refreshProgramMemoryView();
     }
 
-    public void refreshInstructionRegistry(){
+    public void refreshWithInstructionRegistry(InstructionRegistry registry){
         if(core.getInstructionRegistry()!=null){
             StringBuilder stringBuilder=new StringBuilder();
-            for(I_Instruction instruction:core.getInstructionRegistry().getInstructions()){
+            for(I_Instruction instruction:registry.getInstructions()){
                 switch (instruction.getOperandCount()){
                     case 0:
                         stringBuilder.append(instruction.name());

@@ -1,23 +1,45 @@
 package com.github.technus.avrClone.instructions;
 
-import com.sun.javaws.exceptions.InvalidArgumentException;
+import com.github.technus.avrClone.memory.program.InvalidMnemonic;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 
 public class InstructionRegistry {
-    public static final InstructionRegistry INSTRUCTION_REGISTRY_OP=new InstructionRegistry(Instruction.INSTRUCTIONS_OP).setInstructionDefault(Instruction.NULL);
-    public static final InstructionRegistry INSTRUCTION_REGISTRY_IMMERSIVE=new InstructionRegistry(Instruction.INSTRUCTIONS_IMMERSIVE).setInstructionDefault(Instruction.NULL);
+    public static final ArrayList<InstructionRegistry> REGISTRIES=new ArrayList<>();
+
+    public static final InstructionRegistry INSTRUCTION_REGISTRY_OP;
+    public static final InstructionRegistry INSTRUCTION_REGISTRY_IMMERSIVE;
+    static {
+        InstructionRegistry instructionRegistry;
+
+        try{
+            instructionRegistry=new InstructionRegistry(Instruction.INSTRUCTIONS_OP).setInstructionDefaultAndName(Instruction.NULL,"OP");
+        }catch (InvalidMnemonic e){
+            instructionRegistry=null;
+        }
+        INSTRUCTION_REGISTRY_OP=instructionRegistry;
+
+        try{
+            instructionRegistry=new InstructionRegistry(Instruction.INSTRUCTIONS_IMMERSIVE).setInstructionDefaultAndName(Instruction.NULL,"IMMERSIVE");
+        }catch (InvalidMnemonic e){
+            instructionRegistry=null;
+        }
+        INSTRUCTION_REGISTRY_IMMERSIVE=instructionRegistry;
+    }
 
     private HashMap<String,Integer> instructionsMap=new HashMap<>();
     private I_Instruction[] instructions;
     private int instructionDefault;
 
-    public InstructionRegistry(ArrayList<? extends I_Instruction> array){
+    private String name;
+
+    public InstructionRegistry(ArrayList<? extends I_Instruction> array) throws InvalidMnemonic{
         instructions=new I_Instruction[array.size()];
         for(I_Instruction instructionAVRrc :array){
             addInstruction(instructionAVRrc);
         }
+        REGISTRIES.add(this);
     }
 
     public InstructionRegistry print(){
@@ -28,15 +50,16 @@ public class InstructionRegistry {
         return this;
     }
 
-    public InstructionRegistry setInstructionDefault(I_Instruction instructionDefault) {
+    public InstructionRegistry setInstructionDefaultAndName(I_Instruction instructionDefault,String name) {
         this.instructionDefault = getID(instructionDefault.name());
+        this.name=name;
         return this;
     }
 
-    public void addInstruction(I_Instruction instruction){
+    public void addInstruction(I_Instruction instruction) throws InvalidMnemonic{
         int id=instructionsMap.size();
         if(instructionsMap.put(instruction.name(),id)!=null){
-            throw new Error(new InvalidArgumentException(new String[]{"Duplicate instruction name",instruction.name()}));
+            throw new InvalidMnemonic("Duplicate instruction "+instruction.name());
         }
         instructions[id]=instruction;
     }
@@ -61,5 +84,10 @@ public class InstructionRegistry {
 
     public I_Instruction[] getInstructions() {
         return instructions.clone();
+    }
+
+    @Override
+    public String toString() {
+        return name;
     }
 }

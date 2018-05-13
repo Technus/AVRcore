@@ -18,11 +18,6 @@ public class Main {
         AvrCore core=new AvrCore(InstructionRegistry.INSTRUCTION_REGISTRY_OP,false);
         core.simpleInit();
         core.putRegistersBindings(new GPIO_Registers(0x00),"GPIOR");
-        try {
-            core.setProgramMemory("DES 0 0", "SBRS 0 8","JMP 0","nopt 0");
-        }catch (Exception e){
-            e.printStackTrace();
-        }
 
         new AvrTest(core).show();
     }
