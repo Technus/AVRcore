@@ -6,7 +6,7 @@
       <xy x="20" y="20" width="771" height="520"/>
     </constraints>
     <properties>
-      <preferredSize width="500" height="500"/>
+      <preferredSize width="1200" height="700"/>
     </properties>
     <border type="none"/>
     <children>
@@ -58,6 +58,7 @@
                           <splitpane position="right"/>
                         </constraints>
                         <properties>
+                          <continuousLayout value="true"/>
                           <oneTouchExpandable value="true"/>
                           <orientation value="0"/>
                           <resizeWeight value="0.75"/>
@@ -73,11 +74,13 @@
                             </properties>
                             <border type="none"/>
                             <children>
-                              <component id="c245e" class="javax.swing.JTextArea" binding="limits">
+                              <component id="fc623" class="javax.swing.JTextArea" binding="limits">
                                 <constraints/>
                                 <properties>
+                                  <background color="-14079703"/>
                                   <editable value="false"/>
                                   <font name="Consolas" size="11"/>
+                                  <preferredSize width="-1" height="20"/>
                                 </properties>
                               </component>
                             </children>
@@ -107,12 +110,14 @@
                                 </properties>
                                 <border type="none"/>
                                 <children>
-                                  <component id="cf18e" class="javax.swing.JTextArea" binding="instructions">
+                                  <component id="474e2" class="javax.swing.JTextArea" binding="instructions">
                                     <constraints/>
                                     <properties>
+                                      <background color="-14079703"/>
                                       <dragEnabled value="false"/>
                                       <editable value="false"/>
                                       <font name="Consolas" size="11"/>
+                                      <preferredSize width="-1" height="20"/>
                                     </properties>
                                   </component>
                                 </children>
@@ -188,6 +193,8 @@
                               <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="7" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
                             </constraints>
                             <properties>
+                              <continuousLayout value="true"/>
+                              <lastDividerLocation value="312"/>
                               <oneTouchExpandable value="true"/>
                               <resizeWeight value="0.75"/>
                             </properties>
@@ -207,6 +214,7 @@
                                     <properties>
                                       <background color="-13948117"/>
                                       <font name="Consolas" size="11"/>
+                                      <preferredSize width="600" height="20"/>
                                       <selectionColor color="-14597501"/>
                                     </properties>
                                   </component>
@@ -218,6 +226,7 @@
                                 </constraints>
                                 <properties>
                                   <font name="Consolas" size="11"/>
+                                  <preferredSize width="300" height="419"/>
                                 </properties>
                                 <border type="none"/>
                                 <children>

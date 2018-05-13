@@ -2460,4 +2460,9 @@ public abstract class Instruction implements I_Instruction {
     public OperandLimit getLimit1() {
         return limit1;
     }
+
+    @Override
+    public String getNotes() {
+        return "";
+    }
 }

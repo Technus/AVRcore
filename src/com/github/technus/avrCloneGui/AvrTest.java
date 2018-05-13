@@ -224,19 +224,19 @@ public class AvrTest {
             for(I_Instruction instruction:registry.getInstructions()){
                 switch (instruction.getOperandCount()){
                     case 0:
-                        stringBuilder.append(instruction.name());
+                        stringBuilder.append(String.format("%1$-20s",instruction.name()));
                         break;
                     case 1:
-                        stringBuilder.append(instruction.name()).append(' ');
-                        stringBuilder.append(instruction.getLimit0().name);
+                        stringBuilder.append(String.format("%1$-8s",instruction.name()));
+                        stringBuilder.append(String.format("%1$-12s",instruction.getLimit0().name));
                         break;
                     case 2:
-                        stringBuilder.append(instruction.name()).append(' ');
-                        stringBuilder.append(instruction.getLimit0().name).append(' ');
-                        stringBuilder.append(instruction.getLimit1().name);
+                        stringBuilder.append(String.format("%1$-8s",instruction.name()));
+                        stringBuilder.append(String.format("%1$-6s",instruction.getLimit0().name));
+                        stringBuilder.append(String.format("%1$-6s",instruction.getLimit0().name));
                         break;
                 }
-                stringBuilder.append("\n");
+                stringBuilder.append(instruction.getNotes()).append("\n");
             }
             instructions.setText(stringBuilder.toString());
         }
@@ -245,7 +245,12 @@ public class AvrTest {
     public void refreshLimitsRegistry(){
         StringBuilder stringBuilder=new StringBuilder();
         for(OperandLimit limit:OperandLimit.registry){
-            stringBuilder.append(limit.name).append(' ').append(limit.getPossibleValuesString()).append("\n");
+            if(limit.getBroader()!=null){
+                stringBuilder.append(String.format("%1$-6s",limit.name)).append(String.format("(%1$-6s) ",limit.getBroader().name));
+            }else {
+                stringBuilder.append(String.format("%1$-15s",limit.name));
+            }
+            stringBuilder.append(limit.getPossibleValuesString()).append("\n");
         }
         limits.setText(stringBuilder.toString());
     }

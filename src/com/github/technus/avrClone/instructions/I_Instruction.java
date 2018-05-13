@@ -31,4 +31,5 @@ public interface I_Instruction {
 
     OperandLimit getLimit0();
     OperandLimit getLimit1();
+    String getNotes();
 }

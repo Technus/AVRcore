@@ -169,9 +169,6 @@ public class OperandLimit {
                 stringBuilder.append(i).append(' ');
             }
         }
-        if(broader!=null){
-            stringBuilder.append('(').append(broader.name).append(") ");
-        }
         if(asOffset){
             stringBuilder.append("difference");
         }
@@ -179,5 +176,9 @@ public class OperandLimit {
             stringBuilder.append(", special max min ");
         }
         return stringBuilder.toString();
+    }
+
+    public OperandLimit getBroader() {
+        return broader;
     }
 }
