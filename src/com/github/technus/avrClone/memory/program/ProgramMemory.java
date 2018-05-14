@@ -129,7 +129,7 @@ public class ProgramMemory implements Cloneable{
                 instructions[i] = id;
                 operandsReturn[0]=operandsReturn[1]=0;
 
-                registry.getInstruction(instructions[i]).compile(core, this, i, immersiveOperands, operandsReturn, values);
+                registry.getInstruction(instructions[i]).compileInstruction(core, this, i, immersiveOperands, operandsReturn, values);
 
                 param0[i] = operandsReturn[0];
                 param1[i] = operandsReturn[1];
