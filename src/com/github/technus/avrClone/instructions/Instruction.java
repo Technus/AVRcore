@@ -1032,7 +1032,7 @@ public abstract class Instruction implements I_Instruction {
             },
             LD = new Instruction("LD",true) {
                 @Override
-                public void compile(AvrCore core, ProgramMemory programMemory, int address, boolean immersive, int[] operandsReturn, String[] values) throws InvalidMnemonic{
+                public void compileInstruction(AvrCore core, ProgramMemory programMemory, int address, boolean immersive, int[] operandsReturn, String[] values) throws InvalidMnemonic{
                     throw new InvalidMnemonic("This LD is only a dummy!");
                 }
 
@@ -1801,7 +1801,7 @@ public abstract class Instruction implements I_Instruction {
             },
             SPM = new Instruction("SPM",true) {
                 @Override
-                public void compile(AvrCore core, ProgramMemory programMemory, int address, boolean immersive, int[] operandsReturn, String[] values) throws InvalidMnemonic{
+                public void compileInstruction(AvrCore core, ProgramMemory programMemory, int address, boolean immersive, int[] operandsReturn, String[] values) throws InvalidMnemonic{
                     throw new InvalidMnemonic("This SPM is only a dummy!");
                 }
 
@@ -1811,7 +1811,7 @@ public abstract class Instruction implements I_Instruction {
             },
             ST = new Instruction("ST",true) {
                 @Override
-                public void compile(AvrCore core, ProgramMemory programMemory, int address, boolean immersive, int[] operandsReturn, String[] values)  throws InvalidMnemonic{
+                public void compileInstruction(AvrCore core, ProgramMemory programMemory, int address, boolean immersive, int[] operandsReturn, String[] values)  throws InvalidMnemonic{
                     throw new InvalidMnemonic("This ST is only a dummy!");
                 }
 
@@ -2363,7 +2363,7 @@ public abstract class Instruction implements I_Instruction {
     }
 
     /**
-     * Default compile implementation. works well for 2x Register number
+     * Default compileInstruction implementation. works well for 2x Register number
      *
      * @param core           core that is compiling
      * @param programMemory  target prog mem
@@ -2374,7 +2374,7 @@ public abstract class Instruction implements I_Instruction {
      * @return is instruction valid
      */
     @Override
-    public void compile(AvrCore core, ProgramMemory programMemory, int address, boolean immersive, int[] operandsReturn, String[] values) throws ProgramException {
+    public void compileInstruction(AvrCore core, ProgramMemory programMemory, int address, boolean immersive, int[] operandsReturn, String[] values) throws ProgramException {
         int temp=0;
         InvalidOperand0 err0=null;
         if (values.length > 1) {
@@ -2383,17 +2383,7 @@ public abstract class Instruction implements I_Instruction {
             }
             if(err0==null) {
                 try {
-                    if (values[1].contains("0x") | values[1].contains("0X")) {
-                        values[1] = values[1].replaceAll("0[xX]", "");
-                        temp = Integer.parseInt(values[1], 16);
-                    } else if (values[1].contains("0b") | values[1].contains("0B")) {
-                        values[1] = values[1].replaceAll("0[bB]", "");
-                        temp = Integer.parseInt(values[1], 2);
-                    } else if (values[1].startsWith("-0") | values[1].startsWith("0")) {
-                        temp = Integer.parseInt(values[1], 8);
-                    } else {
-                        temp = Integer.parseInt(values[1], 10);
-                    }
+                    temp=ProgramMemory.parseAdvanced(values[1]);
                 } catch (Exception e) {
                     err0 = new InvalidOperand0("Cannot Parse " + values[1]);
                 }
@@ -2414,17 +2404,7 @@ public abstract class Instruction implements I_Instruction {
                 }
             }
             try {
-                if(values[2].contains("0x")|values[2].contains("0X")){
-                    values[2]=values[2].replaceAll("0[xX]","");
-                    temp = Integer.parseInt(values[2],16);
-                }else if(values[2].contains("0b")|values[2].contains("0B")){
-                    values[2]=values[2].replaceAll("0[bB]","");
-                    temp = Integer.parseInt(values[2],2);
-                }else if(values[2].startsWith("-0")|values[2].startsWith("0")){
-                    temp = Integer.parseInt(values[2],8);
-                }else{
-                    temp = Integer.parseInt(values[2],10);
-                }
+                temp=ProgramMemory.parseAdvanced(values[2]);
             }catch (Exception e){
                 if(err0==null){
                     throw new InvalidOperand1("Instruction " +name+ " At line "+address+" Cannot Parse "+values[2]);

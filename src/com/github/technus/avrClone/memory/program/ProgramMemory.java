@@ -149,4 +149,18 @@ public class ProgramMemory implements Cloneable{
         System.arraycopy(param1,0,programMemory.param1,0, param1.length);
         return programMemory;
     }
+    
+    public static int parseAdvanced(String str){
+        if (str.contains("0x") | str.contains("0X")) {
+            str = str.replaceAll("0[xX]", "");
+            return Integer.parseInt(str, 16);
+        } else if (str.contains("0b") | str.contains("0B")) {
+            str = str.replaceAll("0[bB]", "");
+            return Integer.parseInt(str, 2);
+        } else if (str.startsWith("-0") | str.startsWith("0")) {
+            return Integer.parseInt(str, 8);
+        } else {
+            return Integer.parseInt(str, 10);
+        }
+    }
 }

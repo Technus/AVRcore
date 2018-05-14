@@ -57,8 +57,8 @@ public class AvrTest {
     private JPanel mainPanel;
 
     private JComboBox<InstructionRegistry> registry;
-    private JTextArea instructions;
-    private JTextArea limits;
+    private JTextPane instructions;
+    private JTextPane limits;
 
     public final AvrCore core;
 
@@ -233,7 +233,7 @@ public class AvrTest {
                     case 2:
                         stringBuilder.append(String.format("%1$-8s",instruction.name()));
                         stringBuilder.append(String.format("%1$-6s",instruction.getLimit0().name));
-                        stringBuilder.append(String.format("%1$-6s",instruction.getLimit0().name));
+                        stringBuilder.append(String.format("%1$-6s",instruction.getLimit1().name));
                         break;
                 }
                 stringBuilder.append(instruction.getNotes()).append("\n");

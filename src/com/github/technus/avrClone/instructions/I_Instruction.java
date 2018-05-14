@@ -17,7 +17,7 @@ public interface I_Instruction {
      * @param values Instruction, Operand 0, Operand 1
      * @return
      */
-    void compile(AvrCore core, ProgramMemory programMemory, int addr, boolean immersive, int[] operandsReturn, String[] values) throws ProgramException;
+    void compileInstruction(AvrCore core, ProgramMemory programMemory, int addr, boolean immersive, int[] operandsReturn, String[] values) throws ProgramException;
 
     /**
      * must check if the space that you want to acces EXISTS (in case of indirect operations)
