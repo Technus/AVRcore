@@ -159,6 +159,9 @@ public class ProgramMemory implements Cloneable{
                 }
 
                 String[] values = lines[i].split(" ");
+                for(int i=1;i<values.length;i++){
+                    values[i]=values[i].replaceAll("[rR]","");
+                }
                 Integer id=registry.getId(values[0].toUpperCase());
                 if (id == null) {
                     throw new InvalidMnemonic("Instruction " +values[0].toUpperCase()+ " At line "+i+" Mnemonic does not exist");
