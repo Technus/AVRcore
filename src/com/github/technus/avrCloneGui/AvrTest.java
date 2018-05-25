@@ -18,7 +18,6 @@ import com.github.technus.avrCloneGui.programMemory.programTable.ProgramTableMod
 import com.github.technus.avrCloneGui.programMemory.programTable.ProgramTablePopup;
 import com.github.technus.avrCloneGui.registerFile.registerTable.RegisterTableModel;
 import com.github.technus.avrCloneGui.registerFile.registerTable.RegisterTablePopup;
-import jsyntaxpane.components.LineNumbersRuler;
 import jsyntaxpane.syntaxkits.AsmSyntaxKit;
 
 import javax.swing.*;
@@ -158,7 +157,7 @@ public class AvrTest {
             refreshRegistersDataPc();
         });
 
-        LineNumbersRuler.enableASM(10);
+        //LineNumbersRuler.enableASM(10);
         asm.setEditorKit(kit=new AsmSyntaxKit());
 
 

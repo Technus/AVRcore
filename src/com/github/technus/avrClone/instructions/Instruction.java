@@ -2,6 +2,7 @@ package com.github.technus.avrClone.instructions;
 
 import com.github.technus.avrClone.AvrCore;
 import com.github.technus.avrClone.memory.program.*;
+import com.github.technus.avrClone.compiler.ProgramCompiler;
 import com.github.technus.avrClone.registerPackages.CPU_Registers;
 import com.github.technus.avrClone.registerPackages.RegisterFileSingles;
 import jpsam3hklam9.des.DES;
@@ -2383,7 +2384,7 @@ public abstract class Instruction implements I_Instruction {
             }
             if(err0==null) {
                 try {
-                    temp=ProgramMemory.parseAdvanced(values[1]);
+                    temp=(int)ProgramCompiler.parseNumberAdvanced(values[1]);
                 } catch (Exception e) {
                     err0 = new InvalidOperand0("Cannot Parse " + values[1]);
                 }
@@ -2404,7 +2405,7 @@ public abstract class Instruction implements I_Instruction {
                 }
             }
             try {
-                temp=ProgramMemory.parseAdvanced(values[2]);
+                temp=(int)ProgramCompiler.parseNumberAdvanced(values[2]);
             }catch (Exception e){
                 if(err0==null){
                     throw new InvalidOperand1("Instruction " +name+ " At line "+address+" Cannot Parse "+values[2]);

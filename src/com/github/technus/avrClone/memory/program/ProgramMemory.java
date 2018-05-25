@@ -7,6 +7,8 @@ import com.github.technus.avrClone.instructions.InstructionRegistry;
 import java.io.PrintStream;
 import java.util.HashMap;
 
+import static com.github.technus.avrClone.compiler.ProgramCompiler.parseNumberAdvanced;
+
 public class ProgramMemory implements Cloneable{
     public final int[] instructions, param0, param1;
     public final InstructionRegistry registry;
@@ -159,7 +161,7 @@ public class ProgramMemory implements Cloneable{
                 }
 
                 String[] values = lines[i].split(" ");
-                for(int i=1;i<values.length;i++){
+                for(;i<values.length;i++){
                     values[i]=values[i].replaceAll("[rR]","");
                 }
                 Integer id=registry.getId(values[0].toUpperCase());
@@ -257,7 +259,7 @@ public class ProgramMemory implements Cloneable{
                     throw new InvalidDirective("Invalid name "+temp[0]+", required: \"[0-9a-zA-Z]\"! At line "+i);
                 }
                 try {
-                    int r = parseAdvanced(temp[1]);
+                    int r = (int)parseNumberAdvanced(temp[1]);
                     if(r<0 || r>=core.registerFile.length){
                         throw new InvalidDirective("Invalid register address "+r+"! At line "+i);
                     }
@@ -300,7 +302,7 @@ public class ProgramMemory implements Cloneable{
                     throw new InvalidDirective("Invalid name "+temp[0]+", required: \"[0-9a-zA-Z]\"! At line "+i);
                 }
                 try {
-                    int r = parseAdvanced(temp[1]);
+                    int r = (int)parseNumberAdvanced(temp[1]);
                     if(labels.containsKey(temp[0])){
                         throw new InvalidDirective("Invalid name "+temp[0]+", already defined as label! At line "+i);
                     }
@@ -339,7 +341,7 @@ public class ProgramMemory implements Cloneable{
                         if (temp[1].length() == 0) {
                             mapS.remove(temp[0]);
                         } else {
-                            int r = parseAdvanced(temp[1]);
+                            int r = (int)parseNumberAdvanced(temp[1]);
                             mapS.put(temp[0], r);
                         }
                     }else {
@@ -383,19 +385,5 @@ public class ProgramMemory implements Cloneable{
         System.arraycopy(param0,0,programMemory.param0,0, param0.length);
         System.arraycopy(param1,0,programMemory.param1,0, param1.length);
         return programMemory;
-    }
-    
-    public static int parseAdvanced(String str){
-        if (str.contains("0x") | str.contains("0X")) {
-            str = str.replaceAll("0[xX]", "");
-            return Integer.parseInt(str, 16);
-        } else if (str.contains("0b") | str.contains("0B")) {
-            str = str.replaceAll("0[bB]", "");
-            return Integer.parseInt(str, 2);
-        } else if (str.startsWith("-0") | str.startsWith("0")) {
-            return Integer.parseInt(str, 8);
-        } else {
-            return Integer.parseInt(str, 10);
-        }
     }
 }
