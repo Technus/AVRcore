@@ -1,11 +1,13 @@
 package com.github.technus.avrClone.compiler;
 
+import com.github.technus.avrClone.compiler.directives.ExitDirective;
 import com.github.technus.avrClone.compiler.directives.IDirective;
 import com.github.technus.avrClone.compiler.directives.Directive;
 import com.github.technus.avrClone.compiler.directives.InvalidDirective;
 import com.github.technus.avrClone.compiler.exceptions.*;
 import com.github.technus.avrClone.compiler.js.CompilerBindings;
 import com.github.technus.avrClone.compiler.js.CompilerContext;
+import javafx.geometry.Pos;
 import jdk.nashorn.api.scripting.NashornScriptEngine;
 import jdk.nashorn.api.scripting.NashornScriptEngineFactory;
 
@@ -32,7 +34,10 @@ public final class ProgramCompiler {
     private HashMap<String,ArrayList<String>> includedFiles;
 
     private int currentLine;
-    private HashSet<String> labelsAndPointersToAssign;
+    private HashSet<String> labelsOrPointersToAssign;
+    private HashMap<String,Binding> tempBindings;
+
+    private ArrayList<String> argHolder;
     private ArrayList<String> lines;
     private ArrayList<Position> positions;
     private ArrayList<Boolean> processedLines;
@@ -58,7 +63,8 @@ public final class ProgramCompiler {
     private ListingMode listing;
 
     private Includer includer;
-    private HashMap<String,IDirective> instanceDirectives;
+
+    private HashMap<String,IDirective> instanceDirectives=new HashMap<>();
 
     private ArrayList<String> madeFile;
     //endregion
@@ -73,7 +79,9 @@ public final class ProgramCompiler {
         includedFiles = new HashMap<>(8);
 
         currentLine=0;
-        labelsAndPointersToAssign =new HashSet<>();
+        labelsOrPointersToAssign=new HashSet<>(8);
+        tempBindings=new HashMap<>(32);
+        argHolder=new ArrayList<>(128);
         positions=new ArrayList<>(512);
         processedLines=new ArrayList<>(512);
         lines=new ArrayList<>(512);
@@ -104,6 +112,7 @@ public final class ProgramCompiler {
         scriptEngine.setContext(scriptContext);
 
         compilationEnabled = new ArrayList<>();
+        compilationEnabled.add(ConditionalState.ASSEMBLING);
 
         macros = new HashMap<>();
         editingMacros = new HashSet<>();
@@ -138,64 +147,220 @@ public final class ProgramCompiler {
         for(int i=0;i<lines.size();i++){
             positions.add(new Position(i,null));
             processedLines.add(false);
+            argHolder.add(null);
         }
     }
-    public void writeProgram() throws Exception{
-        if(mainFile==null){
-            throw new CompilerException("No main file loaded!");
-        }
-        boolean directivesProcessed;
-        do {
-            directivesProcessed=true;
-            for(currentLine=0;currentLine<lines.size();currentLine++){
-                String line=lines.get(currentLine);
+    public void writeProgram() throws Exception {
+        madeFile=null;
+        try {
+            if (mainFile == null) {
+                throw new CompilerException("No main file loaded!");
+            }
 
-                if(isCompilationEnabled()){
-                    String labelOrPointer= getLabelOrPointerName(line);
-                    if(labelOrPointer!=null){
-                        labelsAndPointersToAssign.add(labelOrPointer);
-                    }
-                }
-                String directiveName=getDirectiveName(line);
-                String mnemonic = getMnemonic(line);
-                if(!processedLines.get(currentLine)){
-                    
-                }
-                if (directiveName != null && mnemonic!=null){
-                    throw new CompilerException("Invalid line: "+line);
-                }
-                if(directiveName!=null && !processedLines.get(currentLine)) {
-                    IDirective directive = getDirective(directiveName);
-                    if(directive!=null){
-                        try {
-                            directive.process(this, getExpressionsString(line));
-                            processedLines.set(currentLine,true);
-                            directivesProcessed=false;
-                        }catch (EvaluationException e){
-                            writeError("First multi pass: "+e.getMessage());
+            boolean didSomething;
+            Exception exception = null;
+            {
+                int firstUnskippableFail;
+                do {//all directives it can, ALL conditionals
+                    firstUnskippableFail = -1;
+                    didSomething = false;
+
+                    labelsOrPointersToAssign.clear();
+                    setConditionalState(ConditionalState.ASSEMBLING);
+                    setListing(ListingMode.LIST);
+
+                    for (currentLine = 0; currentLine < lines.size(); currentLine++) {
+                        if (!processedLines.get(currentLine)) {
+                            String line = lines.get(currentLine);
+                            String labelOrPointer = getLabelOrPointerName(line);
+                            if (labelOrPointer != null) {
+                                labelsOrPointersToAssign.add(labelOrPointer);
+                            }
+
+                            String directiveName = getDirectiveName(line);
+                            String mnemonic = getMnemonic(line);
+                            if (directiveName != null) {
+                                if (mnemonic != null) {
+                                    throw new CompilerException("Invalid line: " + line);
+                                }
+
+                                IDirective directive = getDirective(directiveName);
+                                if (directive != null) {
+                                    try {
+                                        String expressions = argHolder.get(currentLine);
+                                        if (expressions == null) {
+                                            expressions = getExpressionsString(line);
+                                        }
+                                        String args = directive.process(this, expressions);
+                                        if (directive.isRepeatable()) {
+                                            argHolder.set(currentLine, args);
+                                        } else {
+                                            processedLines.set(currentLine, true);
+                                        }
+                                        didSomething = true;
+                                    } catch (EvaluationException e) {
+                                        if (directive.isUnskippable()) {
+                                            setConditionalState(ConditionalState.DISABLED);
+                                            if (firstUnskippableFail == -1) {
+                                                exception = e;
+                                                firstUnskippableFail = currentLine;
+                                            }
+                                            writeError("WARN: " + exception.getMessage());
+                                        }
+                                    } catch (ExitDirective e) {
+                                        Position pos = positions.get(currentLine);
+                                        String file = pos.file;
+                                        processedLines.set(currentLine, true);
+                                        for (currentLine++; currentLine < lines.size(); currentLine++) {
+                                            if (file.equals(positions.get(currentLine).file)) {
+                                                processedLines.set(currentLine, true);
+                                            } else {
+                                                currentLine--;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+                            } else if (mnemonic != null) {
+                                labelsOrPointersToAssign.clear();
+                                if (isCompilationEnabled()) {
+                                    if (isEditingMacros()) {
+                                        addToMacros(line);
+                                    }
+                                } else if (firstUnskippableFail == -1) {
+                                    processedLines.set(currentLine, true);
+                                    didSomething = true;
+                                }
+                            } else/*nothing of value...*/ {
+                                processedLines.set(currentLine, true);
+                            }
                         }
                     }
+                } while (didSomething);
+                if (firstUnskippableFail >= 0) {
+                    Position pos = positions.get(firstUnskippableFail);
+                    if (pos.file == null) {
+                        throw new CompilerException("Cannot process directive! " + pos.line, exception);
+                    } else {
+                        throw new CompilerException("Cannot process directive! " + pos.file + " " + pos.line, exception);
+                    }
+                }
+            }
+            exception=null;
+
+            if (isEditingMacros()) {
+                throw new CompilerException("Is still trying to edit macros! " + Arrays.toString(editingMacros.toArray(new String[0])));
+            }
+
+            for (Map.Entry<String, Binding> entry : tempBindings.entrySet()) {
+                putBinding(entry.getKey(), entry.getValue());
+            }
+
+            labelsOrPointersToAssign.clear();
+
+            int programCounter=0;
+            for (currentLine = 0; currentLine < lines.size(); currentLine++) {
+                if(processedLines.get(currentLine)){
+                    continue;
                 }
 
-            }
-        }while (!directivesProcessed);
-        ArrayList<String> made=new ArrayList<>();
-        boolean programGenerated;
-        do{
-            programGenerated=true;
-            for(currentLine=0;currentLine<lines.size();currentLine++){
-                String line=lines.get(currentLine);
-            }
-        }while (!programGenerated);
-        boolean programWritten;
-        do{
-            programWritten=true;
-            for(currentLine=0;currentLine<lines.size();currentLine++){
-                String line=lines.get(currentLine);
-            }
-        }while (!programWritten);
+                String line = lines.get(currentLine);
+                line=line.replaceAll(NAME_FORMAT+"#","($1-"+programCounter+')');
+                if(line.contains("#")){
+                    throw new CompilerException("Unable to replace with PC difference! "+line);
+                }
+                lines.set(currentLine,line);
 
-        madeFile=made;
+                String labelOrPointer = getLabelOrPointerName(line);
+                if (labelOrPointer != null) {
+                    labelsOrPointersToAssign.add(labelOrPointer);
+                }
+
+                String mnemonic=getMnemonic(line);
+                if(mnemonic!=null) {
+                    putProgramLabels(programCounter);
+
+                    if(isMacroDefined(mnemonic)) {
+                        injectMacro(mnemonic, getExpressionsString(line));
+                        processedLines.set(currentLine,true);
+                    }else{
+                        programCounter++;
+                    }
+                }else if (containsDirectiveName(line)){
+                    labelsOrPointersToAssign.clear();
+                }
+            }
+
+            {
+                int firstFail;
+                do {
+                    firstFail = -1;
+                    didSomething = false;
+
+                    for (currentLine = 0; currentLine < lines.size(); currentLine++) {
+                        if (!processedLines.get(currentLine)) {
+                            String line = lines.get(currentLine);
+                            String directiveName = getDirectiveName(line);
+                            String mnemonic = getMnemonic(line);
+                            try {
+                                if (directiveName != null) {
+                                    if (mnemonic != null) {
+                                        throw new CompilerException("Invalid line: " + line);
+                                    }
+                                    IDirective directive = getDirective(directiveName);
+                                    if (directive != null) {
+                                        if (directive.isOnlyFirstPass()) {
+                                            throw new CompilerException("Failed to process directive in first pass! " + line);
+                                        }
+                                        directive.process(this, getExpressionsString(line));
+                                    }
+                                } else if (mnemonic != null) {
+                                    String[] expressions = splitExpressionsString(getExpressionsString(line));
+                                    StringBuilder sb = new StringBuilder(mnemonic);
+                                    for (int i = 0; i < expressions.length; i++) {
+                                        sb.append(' ').append(Integer.toString(computeValue(expressions[i]).intValue()));
+                                    }
+                                    lines.set(currentLine, sb.toString());
+                                }
+                                processedLines.set(currentLine, true);
+                                didSomething = true;
+                            } catch (EvaluationException e) {
+                                if (firstFail == -1) {
+                                    exception = e;
+                                    firstFail = currentLine;
+                                }
+                                writeError("WARN: " + exception.getMessage());
+                            }
+                        }
+                    }
+                } while (didSomething);
+                if (firstFail >= 0) {
+                    Position pos = positions.get(firstFail);
+                    if (pos.file == null) {
+                        throw new CompilerException("Cannot finish assembling! " + pos.line, exception);
+                    } else {
+                        throw new CompilerException("Cannot finish assembling! " + pos.file + " " + pos.line, exception);
+                    }
+                }
+            }
+
+            ArrayList<String> made = new ArrayList<>();
+            for(currentLine =0 ;currentLine<lines.size();currentLine++){
+                String line = lines.get(currentLine);
+                String mnemonic=getMnemonic(line);
+                if(mnemonic!=null && !isMacroDefined(mnemonic)){
+                    made.add(line);
+                }
+            }
+            if(made.size()!=programCounter){
+                throw new CompilerException("Invalid instruction count! "+programCounter+" "+made.size());
+            }
+            //exception=null;
+
+            madeFile = made;
+        } catch (CompilerException e) {
+            throw new CompilerException(e);
+        }
     }
     public ArrayList<String> getInputFile() {
         return mainFile;
@@ -213,6 +378,9 @@ public final class ProgramCompiler {
         return includer;
     }
     public void include(String file) throws CompilerException{
+        if(file==null){
+            throw new InvalidInclude("Cannot include null!");
+        }
         ArrayList<String> list=includedFiles.get(file);
         if(list==null){
             if (includer == null) {
@@ -230,13 +398,20 @@ public final class ProgramCompiler {
 
         ArrayList<Position> pos=new ArrayList<>();
         ArrayList<Boolean> bools=new ArrayList<>();
+        ArrayList<String> args=new ArrayList<>();
         for(int i=0;i<list.size();i++){
             pos.add(new Position(i,file));
             bools.add(false);
+            args.add(null);
         }
+        pos.add(new Position(-1,file));
+        bools.add(true);
+        args.add(null);
+        list.add('\0'+file);
         positions.addAll(nextLine,pos);
         processedLines.addAll(nextLine,bools);
         lines.addAll(nextLine,list);
+        argHolder.addAll(nextLine,args);
     }
     //endregion
 
@@ -393,7 +568,7 @@ public final class ProgramCompiler {
         if(currentSegment==Segment.DSEG){
             throw new InvalidMemoryAllocation("Cannot store constants in volatile memory! "+constant);
         }
-        int segment=currentSegment.ordinal();
+        int segment=currentSegment.ordinal();//todo add labeling from labels to assign, todo add temp binding
         if(currentSegment==Segment.CSEG){
             constants[segment].put(constants[segment].size(),constant);
             return true;
@@ -495,6 +670,51 @@ public final class ProgramCompiler {
         }
         return false;
     }
+    public void putBinding(String name,Binding binding) throws InvalidBinding{
+        putBinding(compilerBindings,name,binding);
+    }
+    public static void putBinding(HashMap<String,Binding> map, String name, Binding binding) throws InvalidBinding{
+        if(name==null || name.length()==0 || !name.matches(NAME_FORMAT)){
+            throw new InvalidBinding("Invalid binding name specified! "+name);
+        }
+        Binding old=map.get(name);
+        if(old!=null) {
+            switch (old.type) {
+                case SET: case DEF: break;
+                default: throw new InvalidBinding("Cannot rewrite that binding! " + old.type.name()+" "+name);
+            }
+        }
+        map.put(name,binding);
+    }
+    public static void putBinding(HashMap<String,Object> map, String name, Object binding) throws InvalidBinding{
+        if(!(binding instanceof Binding)){
+            throw new InvalidBinding("Invalid binding specified! "+name);
+        }
+        if(name==null || name.length()==0 || !name.matches(NAME_FORMAT)){
+            throw new InvalidBinding("Invalid binding name specified! "+name);
+        }
+        Object objec=map.get(name);
+        if(objec!=null && !(objec instanceof Binding)){
+            throw new InvalidBinding("Invalid binding detected! "+name);
+        }
+        if(objec!=null) {
+            Binding old=(Binding)objec;
+            switch (old.type) {
+                case SET: case DEF: break;
+                default: throw new InvalidBinding("Cannot rewrite that binding! " + old.type.name()+" "+name);
+            }
+        }
+        map.put(name,binding);
+    }
+    public void putProgramLabels(int currentPC) throws InvalidBinding{
+        try {
+            for (String name : labelsOrPointersToAssign) {
+                putBinding(name, new Binding(Binding.NameType.LABEL, currentPC));
+            }
+        }finally {
+            labelsOrPointersToAssign.clear();
+        }
+    }
     //endregion
 
     //region compute
@@ -526,7 +746,7 @@ public final class ProgramCompiler {
             throw new EvaluationException("Cannot evaluate! " + script, e);
         }
     }
-    public Boolean computeBoolean(String script) throws EvaluationException{
+    public boolean computeBoolean(String script) throws EvaluationException{
         try {
             Object value = scriptEngine.eval(SANDBOX + script);
             if (value instanceof Boolean) {
@@ -579,24 +799,21 @@ public final class ProgramCompiler {
         }
         compilerBindings.remove(name);
     }
-    public boolean containsNotDefs(String... keys){
-        return compilerBindings.containsNotDefs(keys);
-    }
-    public boolean lacksNotDefs(String... keys){
-        return compilerBindings.lacksNotDefs(keys);
-    }
-    public void putBinding(String name,Binding binding) throws InvalidBinding{
-        if(name==null || name.length()==0 || !name.matches(NAME_FORMAT)){
-            throw new InvalidBinding("Invalid binding name specified! "+name);
-        }
-        Binding old=compilerBindings.getBinding(name);
-        if(old!=null) {
-            switch (old.type) {
-                case SET: case DEF: break;
-                default: throw new InvalidBinding("Cannot rewrite that binding! " + old.type.name()+" "+name);
+    public boolean containsNotDefs(String... keys) throws InvalidBinding{
+        for(String name:keys){
+            if(name==null || name.length()==0 || !name.matches(NAME_FORMAT)){
+                throw new InvalidBinding("Invalid binding name specified! "+name);
             }
         }
-        compilerBindings.put(name,binding);
+        return compilerBindings.containsNotDefs(keys);
+    }
+    public boolean lacksNotDefs(String... keys) throws InvalidBinding{
+        for(String name:keys){
+            if(name==null || name.length()==0 || !name.matches(NAME_FORMAT)){
+                throw new InvalidBinding("Invalid binding name specified! "+name);
+            }
+        }
+        return compilerBindings.lacksNotDefs(keys);
     }
     //endregion
 
@@ -628,7 +845,7 @@ public final class ProgramCompiler {
 
     //region conditional compiler
     public void openIf(boolean compilationEnable){
-        if(compilationEnabled.size()>0){
+        if(compilationEnabled.size()>1){
             if(compilationEnabled.get(compilationEnabled.size()-1)!=ConditionalState.ASSEMBLING){//if not compile
                 compilationEnabled.add(ConditionalState.DISABLED);
                 return;
@@ -636,28 +853,30 @@ public final class ProgramCompiler {
         }
         compilationEnabled.add(compilationEnable?ConditionalState.ASSEMBLING:ConditionalState.CHECKING);
     }
-    public void elseIf(boolean compilationEnable) throws InvalidConditionalStatement {
-        if (compilationEnabled.size() <= 0) {
-            throw new InvalidConditionalStatement("Missing if opening statement!");
+    public void elseIf(boolean compilationEnable) throws InvalidConditionalAssembly,InvalidConditionalEvaluation {
+        if (compilationEnabled.size() <= 1) {
+            throw new InvalidConditionalAssembly("Missing if opening statement!");
         }
         ConditionalState b = compilationEnabled.get(compilationEnabled.size() - 1);
         if (b == ConditionalState.CHECKING) {
             compilationEnabled.set(compilationEnabled.size()-1,compilationEnable?ConditionalState.ASSEMBLING:ConditionalState.CHECKING);
         } else if (b == ConditionalState.ASSEMBLING) {
             compilationEnabled.set(compilationEnabled.size() - 1, ConditionalState.DISABLED);
+        }else{
+            throw new InvalidConditionalEvaluation("Not ready to evaluate!");
         }
     }
-    public void endIf() throws InvalidConditionalStatement {
-        if (compilationEnabled.size() <= 0) {
-            throw new InvalidConditionalStatement("Missing if opening statement!");
+    public void endIf() throws InvalidConditionalAssembly {
+        if (compilationEnabled.size() <= 1) {
+            throw new InvalidConditionalAssembly("Missing if opening statement!");
         }
         compilationEnabled.remove(compilationEnabled.size()-1);
     }
     public boolean isCompilationEnabled(){
-        if(compilationEnabled.size()==0){
-            return true;
-        }
         return compilationEnabled.get(compilationEnabled.size()-1)==ConditionalState.ASSEMBLING;
+    }
+    public void setConditionalState(ConditionalState state){
+        compilationEnabled.set(compilationEnabled.size()-1,state);
     }
     public int getDepth(){
         return compilationEnabled.size();
@@ -672,7 +891,7 @@ public final class ProgramCompiler {
         macros.put(name,new ArrayList<>());
         editingMacros.add(name);
     }
-    public void addToMacros(String line) throws InvalidMacroStatement{
+    private void addToMacros(String line) throws InvalidMacroStatement{
         if(line==null){
             throw new InvalidMacroStatement("Invalid macro line specified!");
         }
@@ -687,32 +906,42 @@ public final class ProgramCompiler {
         }
         editingMacros.remove(name);
     }
-    public boolean isNotEditingMacros(){
-        return editingMacros.isEmpty();
+    public boolean isEditingMacros(){
+        return editingMacros.size()>0;
     }
-    public ArrayList<String> writeMacro(String name,String args) throws InvalidMacroStatement,EvaluationException{
+    private ArrayList<String> writeMacro(String name,String args) throws InvalidMacroStatement{
         ArrayList<String> macro=macros.get(name);
         if(macro==null){
             throw new InvalidMacroStatement("Macro was never defined! "+name);
         }
         String[] arg=splitExpressionsString(args);
-        for(int i=0;i<arg.length;i++){
-            arg[i]=computeString(arg[i]);
+        for (int i = 0; i < arg.length; i++) {
+            arg[i]='('+arg[i]+')';
         }
         ArrayList<String> newLines=new ArrayList<>();
+        ArrayList<String> labels=new ArrayList<>();
+        for(String s:macro) {
+            String label = getLabelOrPointerName(s);
+            if(label!=null){
+                labels.add(label);
+            }
+        }
         for(String s:macro){
             String temp=s;
             for(int i=arg.length-1;i>=0;i--){
-                temp=temp.replaceAll("@"+i,arg[i]);
+                temp=temp.replaceAll("@"+i+"(?:[^0-9].*)?",arg[i]);
             }
             if(temp.contains("@")){
-                throw new InvalidMacroStatement("Cannot write macro line! "+s);
+                throw new InvalidMacroStatement("Cannot resolve all parameters! "+s+" "+currentLine);
+            }
+            for(String l:labels){
+                s=s.replaceAll("(?:.*"+NAME_TERMINATOR+")?"+l+"(?:"+NAME_TERMINATOR+".*)?",l+"__MACRO__"+currentLine);
             }
             newLines.add(temp);
         }
         return newLines;
     }
-    public void injectMacro(String name,String args) throws InvalidMacroStatement,EvaluationException{
+    private void injectMacro(String name,String args) throws InvalidMacroStatement{
         ArrayList<String> macro=writeMacro(name,args);
         int nextLine=currentLine+1;
 
@@ -725,6 +954,9 @@ public final class ProgramCompiler {
         positions.addAll(nextLine,pos);
         processedLines.addAll(nextLine,bools);
         lines.addAll(nextLine,macro);
+    }
+    public boolean isMacroDefined(String name){
+        return macros.containsKey(name) && !editingMacros.contains(name);
     }
     //endregion
 

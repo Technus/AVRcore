@@ -16,7 +16,10 @@ public class CompilerBindings extends HashMap<String,Object> implements Bindings
 
     @Override
     public Object get(Object key) {
-
+        if(containsKey(key)){
+            return getBinding(key).value;
+        }
+        return null;
     }
 
     public Binding getBinding(Object key) {

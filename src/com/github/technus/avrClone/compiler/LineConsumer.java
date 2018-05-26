@@ -4,7 +4,7 @@ import java.util.ArrayList;
 
 public class LineConsumer {
     public static final String NAME_FORMAT ="([a-zA-Z][0-9a-zA-Z_]*)";
-    private static final String NAME_TERMINATOR ="[^0-9a-zA-Z_]";
+    public static final String NAME_TERMINATOR ="[^0-9a-zA-Z_]";
     private static final String NO_EXPRESSIONS[] =new String[0],NO_EXPRESSION="";
 
     private LineConsumer(){}
@@ -27,11 +27,11 @@ public class LineConsumer {
         }
         return newList;
     }
-    public static boolean containsLabelName(String line){
+    public static boolean containsLabelOrPointerName(String line){
         return line.matches('^'+ NAME_FORMAT +":.*$");
     }
     public static String getLabelOrPointerName(String line){
-        return containsLabelName(line)?line.replaceFirst(":.*$",""):null;
+        return containsLabelOrPointerName(line)?line.replaceFirst(":.*$",""):null;
     }
     public static boolean containsDirectiveName(String line){
         return line.matches("^(?:"+NAME_FORMAT+":)?\\."+NAME_FORMAT+"(?: .*)?$");

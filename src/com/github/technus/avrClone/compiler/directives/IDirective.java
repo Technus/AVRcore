@@ -8,6 +8,8 @@ import java.util.HashMap;
 public interface IDirective {
     HashMap<String,IDirective> DEFINED_DIRECTIVES =new HashMap<>();
 
-    void process(ProgramCompiler compiler, String args) throws CompilerException;
-    boolean isUnskippable();
+    String process(ProgramCompiler compiler, String args) throws CompilerException;//returns compiled args
+    boolean isUnskippable();//for conditional assembly
+    boolean isRepeatable();//execute every step with first valid values
+    boolean isOnlyFirstPass();//execute every step with first valid values
 }

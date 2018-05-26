@@ -7,4 +7,7 @@ public class CompilerException extends Exception {
     public CompilerException(String s,Throwable cause){
         super(s,cause);
     }
+    public CompilerException(Throwable cause){
+        super(cause.getMessage(),cause);
+    }
 }
