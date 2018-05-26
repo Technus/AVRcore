@@ -9,7 +9,5 @@ public interface IDirective {
     HashMap<String,IDirective> DEFINED_DIRECTIVES =new HashMap<>();
 
     void process(ProgramCompiler compiler, String args) throws CompilerException;
-    boolean executeAtFirstPass();
-    boolean executeAtSecondPass();
     boolean isUnskippable();
 }

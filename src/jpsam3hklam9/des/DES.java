@@ -130,8 +130,8 @@ public class DES
         long[] roundKeys = keygen.generateRoundKeys(key);
         block = initialPermutation(block);
 
-        int leftHalf = (int) (block >> 32);		// get 32 MSBs
-        int rightHalf = (int) block;			// get 32 LSBs
+        int leftHalf = (int) (block >> 32);		// getBinding 32 MSBs
+        int rightHalf = (int) block;			// getBinding 32 LSBs
         int FOutput;
 
         // does all 16 rounds of DES
@@ -151,7 +151,7 @@ public class DES
             leftHalf ^= rightHalf;
         }
 
-        // reconstruct a 64 bit block from the two halves (which get swapped)
+        // reconstruct a 64 bit block from the two halves (which getBinding swapped)
         long joinedHalves = ((rightHalf & MASK_32_BITS) << 32 | (leftHalf & MASK_32_BITS));
 
         return finalPermutation(joinedHalves);

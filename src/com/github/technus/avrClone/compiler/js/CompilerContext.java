@@ -63,7 +63,7 @@ public class CompilerContext implements ScriptContext {
     public Object getAttribute(String name, int scope) {
         switch (scope){
             case GLOBAL_SCOPE: return global.get(name);
-            case ENGINE_SCOPE: return bindings.get(name);
+            case ENGINE_SCOPE: return bindings.getBinding(name);
             default: return null;
         }
     }
@@ -80,7 +80,7 @@ public class CompilerContext implements ScriptContext {
 
     @Override
     public Object getAttribute(String name) {
-        Object value=bindings.get(name);
+        Object value=bindings.getBinding(name);
         return value != null ? value : global.get(name);
     }
 

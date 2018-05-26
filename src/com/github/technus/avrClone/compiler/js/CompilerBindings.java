@@ -10,8 +10,16 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 
 public class CompilerBindings extends HashMap<String,Object> implements Bindings {
+    public CompilerBindings(int initialCapacity){
+        super(initialCapacity);
+    }
+
     @Override
-    public Binding get(Object key) {
+    public Object get(Object key) {
+
+    }
+
+    public Binding getBinding(Object key) {
         return (Binding) super.get(key);
     }
 
@@ -31,7 +39,7 @@ public class CompilerBindings extends HashMap<String,Object> implements Bindings
         //    value = new Binding(Binding.NameType.SET, ((Number) value).doubleValue());
         //}
         if (value instanceof Binding) {
-            Binding old = get(name);
+            Binding old = getBinding(name);
             if (old == null) {
                 super.put(name, value);
                 return true;
@@ -55,7 +63,7 @@ public class CompilerBindings extends HashMap<String,Object> implements Bindings
         //    value = new Binding(Binding.NameType.SET, ((Number) value).doubleValue());
         //}
         if (value instanceof Binding) {
-            Binding old = get(name);
+            Binding old = getBinding(name);
             if (old == null) {
                 return (Binding) super.put(name, value);
             } else {
@@ -113,7 +121,7 @@ public class CompilerBindings extends HashMap<String,Object> implements Bindings
 
     @Override
     public Binding remove(Object key) {
-        Binding binding = get(key);
+        Binding binding = getBinding(key);
         if (binding == null) {
             return null;
         }
@@ -126,7 +134,7 @@ public class CompilerBindings extends HashMap<String,Object> implements Bindings
     }
 
     public Binding removeDef(Object key) {
-        Binding binding = get(key);
+        Binding binding = getBinding(key);
         if (binding == null) {
             return null;
         }
@@ -140,7 +148,7 @@ public class CompilerBindings extends HashMap<String,Object> implements Bindings
     public Binding removeAllUnsafely(Binding.NameType... type) {
         nextKey:
         for(String key:keySet().toArray(new String[0])){
-            Binding v=get(key);
+            Binding v= getBinding(key);
             for (int i = 0; i < type.length; i++) {
                 if(v.type==type[i]){
                     super.remove(key);
@@ -171,7 +179,7 @@ public class CompilerBindings extends HashMap<String,Object> implements Bindings
 
     @Override
     public Binding replace(String key, Object value) {
-        Binding binding = get(key);
+        Binding binding = getBinding(key);
         if (value instanceof Number) {
             value = new Binding(Binding.NameType.SET, ((Number) value).doubleValue());
         }
@@ -199,7 +207,7 @@ public class CompilerBindings extends HashMap<String,Object> implements Bindings
 
     public boolean containsNotDefs(String... keys) {
         for(Object key:keys){
-            if(!containsKey(key) || get(key).type==Binding.NameType.DEF){
+            if(!containsKey(key) || getBinding(key).type==Binding.NameType.DEF){
                 return false;
             }
         }
@@ -208,7 +216,7 @@ public class CompilerBindings extends HashMap<String,Object> implements Bindings
 
     public boolean lacksNotDefs(String... keys) {
         for(Object key:keys){
-            if(containsKey(key) && get(key).type!=Binding.NameType.DEF){
+            if(containsKey(key) && getBinding(key).type!=Binding.NameType.DEF){
                 return false;
             }
         }

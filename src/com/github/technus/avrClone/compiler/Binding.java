@@ -14,7 +14,7 @@ public class Binding {
     }
 
     public enum NameType{
-        SET,EQU,DEF,LABEL
+        SET,EQU,DEF,LABEL,POINTER//is a label but for constants
     }
 
     @Override
@@ -25,10 +25,7 @@ public class Binding {
 
     @Override
     public boolean equals(Object obj) {
-        if(obj instanceof Binding){
-            return type==((Binding) obj).type && value.equals(((Binding) obj).value);
-        }
-        return false;
+        return obj instanceof Binding && type == ((Binding) obj).type && value.equals(((Binding) obj).value);
     }
 }
 

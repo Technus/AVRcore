@@ -3,38 +3,16 @@ package com.github.technus.avrClone.compiler.directives;
 import com.github.technus.avrClone.compiler.Binding;
 import com.github.technus.avrClone.compiler.ProgramCompiler;
 import com.github.technus.avrClone.compiler.exceptions.CompilerException;
-import com.github.technus.avrClone.compiler.exceptions.InvalidMemoryAccess;
 
-import static com.github.technus.avrClone.compiler.ProgramCompiler.Segment.*;
+import static com.github.technus.avrClone.compiler.LineConsumer.splitExpressionsString;
+import static com.github.technus.avrClone.compiler.ListingMode.*;
+import static com.github.technus.avrClone.compiler.Segment.*;
 
 public abstract class Directive implements IDirective {
-    private final boolean first,second,unskippable;
-    
-    public Directive(){
-        unskippable=false;
-        first=second=true;
-    }
+    private final boolean unskippable;
 
-    public Directive(boolean firstRun){
-        first=firstRun;
-        second=!firstRun;
-        unskippable=false;
-    }
-
-    public Directive(boolean firstRun,boolean secondRun,boolean isUnskippable){
-        first=firstRun;
-        second=secondRun;
-        unskippable=isUnskippable;
-    }
-
-    @Override
-    public boolean executeAtFirstPass() {
-        return first;
-    }
-
-    @Override
-    public boolean executeAtSecondPass() {
-        return second;
+    public Directive(boolean unskippable){
+        this.unskippable=unskippable;
     }
 
     @Override
@@ -83,91 +61,75 @@ public abstract class Directive implements IDirective {
         });
 
         //malloc
-        DEFINED_DIRECTIVES.put("INT",new Directive(true) {
+        DEFINED_DIRECTIVES.put("INT",new Directive(false) {
             @Override
             public void process(ProgramCompiler compiler, String args) throws CompilerException {
                 {
-                    if (compiler.getCurrentSegment() != CSEG) {
-                        compiler.reserveMemory(compiler.computeValue(args).intValue());
-                    } else {
-                        throw new InvalidMemoryAccess("Cannot put variables in program memory!");
-                    }
+                    compiler.reserveMemory(compiler.computeValue(args).intValue());
                 }
             }
         });
-        DEFINED_DIRECTIVES.put("LONG",new Directive(true) {
+        DEFINED_DIRECTIVES.put("FLOAT",new Directive(false) {
             @Override
             public void process(ProgramCompiler compiler, String args) throws CompilerException {
                 {
-                    if (compiler.getCurrentSegment() != CSEG) {
-                        compiler.reserveMemory(compiler.computeValue(args).intValue() * 2);
-                    } else {
-                        throw new InvalidMemoryAccess("Cannot put variables in program memory!");
-                    }
+                    compiler.reserveMemory(compiler.computeValue(args).intValue());
+                }
+            }
+        });
+        DEFINED_DIRECTIVES.put("LONG",new Directive(false) {
+            @Override
+            public void process(ProgramCompiler compiler, String args) throws CompilerException {
+                {
+                    compiler.reserveMemory(compiler.computeValue(args).intValue() * 2);
                 }
             }
         });
 
         //consts
-        DEFINED_DIRECTIVES.put("STRING",new Directive(true) {
+        DEFINED_DIRECTIVES.put("STRING",new Directive(false) {
             @Override
             public void process(ProgramCompiler compiler, String args) throws CompilerException {
                 {
-                    if (compiler.getCurrentSegment() != DSEG) {
-                        compiler.putConstant(compiler.computeString(args));
-                    } else {
-                        throw new InvalidMemoryAccess("Cannot put constants in volatile memory!");
+                    compiler.putConstant(compiler.computeString(args));
+                }
+            }
+        });
+        DEFINED_DIRECTIVES.put("DINT",new Directive(false) {
+            @Override
+            public void process(ProgramCompiler compiler, String args) throws CompilerException {
+                {
+                    String[] arg = splitExpressionsString(args);
+                    for (String anArg : arg) {
+                        compiler.putConstant(compiler.computeValue(anArg).intValue());
                     }
                 }
             }
         });
-        DEFINED_DIRECTIVES.put("DINT",new Directive(true) {
+        DEFINED_DIRECTIVES.put("DLONG",new Directive(false) {
             @Override
             public void process(ProgramCompiler compiler, String args) throws CompilerException {
                 {
-                    if (compiler.getCurrentSegment() != DSEG) {
-                        String[] arg = args.split(",");
-                        for (String anArg : arg) {
-                            compiler.putConstant(compiler.computeValue(anArg).intValue());
-                        }
-                    } else {
-                        throw new InvalidMemoryAccess("Cannot put constants in volatile memory!");
+                    String[] arg = splitExpressionsString(args);
+                    for (String anArg : arg) {
+                        compiler.putConstant(compiler.computeValue(anArg).longValue());
                     }
                 }
             }
         });
-        DEFINED_DIRECTIVES.put("DLONG",new Directive(true) {
+        DEFINED_DIRECTIVES.put("DFLOAT",new Directive(false) {
             @Override
             public void process(ProgramCompiler compiler, String args) throws CompilerException {
                 {
-                    if (compiler.getCurrentSegment() != DSEG) {
-                        String[] arg = args.split(",");
-                        for (String anArg : arg) {
-                            compiler.putConstant(compiler.computeValue(anArg).longValue());
-                        }
-                    } else {
-                        throw new InvalidMemoryAccess("Cannot put constants in volatile memory!");
-                    }
-                }
-            }
-        });
-        DEFINED_DIRECTIVES.put("DFLOAT",new Directive(true) {
-            @Override
-            public void process(ProgramCompiler compiler, String args) throws CompilerException {
-                {
-                    if (compiler.getCurrentSegment() != DSEG) {
-                        String[] arg = args.split(",");
-                        for (String anArg : arg) {
-                            compiler.putConstant(compiler.computeValue(anArg).floatValue());
-                        }
-                    } else {
-                        throw new InvalidMemoryAccess("Cannot put constants in volatile memory!");
+                    String[] arg = splitExpressionsString(args);
+                    for (String anArg : arg) {
+                        compiler.putConstant(compiler.computeValue(anArg).floatValue());
                     }
                 }
             }
         });
 
-        DEFINED_DIRECTIVES.put("EXIT",new Directive(true) {
+        DEFINED_DIRECTIVES.put("EXIT",new Directive(false) {
             @Override
             public void process(ProgramCompiler compiler, String args) throws CompilerException {
                 {
@@ -176,57 +138,66 @@ public abstract class Directive implements IDirective {
             }
         });
 
-        DEFINED_DIRECTIVES.put("MESSAGE",new Directive(true) {
+        DEFINED_DIRECTIVES.put("MESSAGE",new Directive(false) {
             @Override
             public void process(ProgramCompiler compiler, String args) throws CompilerException {
                 compiler.write(compiler.computeString(args));
             }
         });
-        DEFINED_DIRECTIVES.put("WARNING",new Directive(true) {
+        DEFINED_DIRECTIVES.put("WARNING",new Directive(false) {
             @Override
             public void process(ProgramCompiler compiler, String args) throws CompilerException {
                 compiler.writeError("WARNING: " + compiler.computeString(args));
             }
         });
-        DEFINED_DIRECTIVES.put("ERROR",new Directive(true) {
+        DEFINED_DIRECTIVES.put("ERROR",new Directive(false) {
             @Override
             public void process(ProgramCompiler compiler, String args) throws CompilerException {
                 compiler.writeError("ERROR: " + compiler.computeString(args));
             }
         });
 
-        DEFINED_DIRECTIVES.put("EQU",new Directive(true) {
+        DEFINED_DIRECTIVES.put("EQU",new Directive(false) {
             @Override
             public void process(ProgramCompiler compiler, String args) throws CompilerException {
                 {
                     String[] argArr = args.replaceFirst("=", "\0").split("\\x00");
+                    if(argArr.length!=2){
+                        throw new InvalidDirective("Malformed directive! "+args);
+                    }
                     compiler.putBinding(argArr[0], new Binding(Binding.NameType.EQU, compiler.computeValue(argArr[1])));
                 }
             }
         });
-        DEFINED_DIRECTIVES.put("SET",new Directive() {
+        DEFINED_DIRECTIVES.put("SET",new Directive(false) {
             @Override
             public void process(ProgramCompiler compiler, String args) throws CompilerException {
                 {
                     String[] argArr = args.replaceFirst("=", "\0").split("\\x00");
+                    if(argArr.length!=2){
+                        throw new InvalidDirective("Malformed directive! "+args);
+                    }
                     compiler.putBinding(argArr[0], new Binding(Binding.NameType.SET, compiler.computeValue(argArr[1])));
                 }
             }
         });
-        DEFINED_DIRECTIVES.put("DEF",new Directive() {
+        DEFINED_DIRECTIVES.put("DEF",new Directive(false) {
             @Override
             public void process(ProgramCompiler compiler, String args) throws CompilerException {
                 {
                     String[] argArr = args.replaceFirst("=", "\0").split("\\x00");
+                    if(argArr.length!=2){
+                        throw new InvalidDirective("Malformed directive! "+args);
+                    }
                     compiler.putBinding(argArr[0], new Binding(Binding.NameType.DEF, compiler.computeValue(argArr[1])));
                 }
             }
         });
-        DEFINED_DIRECTIVES.put("UNDEF",new Directive() {
+        DEFINED_DIRECTIVES.put("UNDEF",new Directive(false) {
             @Override
             public void process(ProgramCompiler compiler, String args) throws CompilerException {
                 {
-                    String[] defs = args.split(",");
+                    String[] defs = splitExpressionsString(args);
                     for (String def : defs) {
                         compiler.removeBinding(def);
                     }
@@ -234,33 +205,33 @@ public abstract class Directive implements IDirective {
             }
         });
 
-        DEFINED_DIRECTIVES.put("MACRO",new Directive(true) {
+        DEFINED_DIRECTIVES.put("MACRO",new Directive(false) {
             @Override
             public void process(ProgramCompiler compiler, String args) throws CompilerException {
                 {
-                    String[] arg = args.split(",");
+                    String[] arg = splitExpressionsString(args);
                     for (String name : arg) {
                         compiler.addMacro(name);
                     }
                 }
             }
         });
-        DEFINED_DIRECTIVES.put("ENDMACRO",new Directive(true) {
+        DEFINED_DIRECTIVES.put("ENDMACRO",new Directive(false) {
             @Override
             public void process(ProgramCompiler compiler, String args) throws CompilerException {
                 {
-                    String[] arg = args.split(",");
+                    String[] arg = splitExpressionsString(args);
                     for (String name : arg) {
                         compiler.finishMacro(name);
                     }
                 }
             }
         });
-        DEFINED_DIRECTIVES.put("ENDM",new Directive(true) {
+        DEFINED_DIRECTIVES.put("ENDM",new Directive(false) {
             @Override
             public void process(ProgramCompiler compiler, String args) throws CompilerException {
                 {
-                    String[] arg = args.split(",");
+                    String[] arg = splitExpressionsString(args);
                     for (String name : arg) {
                         compiler.finishMacro(name);
                     }
@@ -268,13 +239,13 @@ public abstract class Directive implements IDirective {
             }
         });
 
-        DEFINED_DIRECTIVES.put("IF",new Directive(true,false,true) {
+        DEFINED_DIRECTIVES.put("IF",new Directive(true) {
             @Override
             public void process(ProgramCompiler compiler, String args) throws CompilerException {
                 compiler.openIf(compiler.computeBoolean(args));
             }
         });
-        DEFINED_DIRECTIVES.put("IFDEF",new Directive(true,false,true) {
+        DEFINED_DIRECTIVES.put("IFDEF",new Directive(true) {
             @Override
             public void process(ProgramCompiler compiler, String args) throws CompilerException {
                 {//all def
@@ -283,7 +254,7 @@ public abstract class Directive implements IDirective {
                 }
             }
         });
-        DEFINED_DIRECTIVES.put("IFNDEF",new Directive(true,false,true) {
+        DEFINED_DIRECTIVES.put("IFNDEF",new Directive(true) {
             @Override
             public void process(ProgramCompiler compiler, String args) throws CompilerException {
                 {//all undef
@@ -292,7 +263,7 @@ public abstract class Directive implements IDirective {
                 }
             }
         });
-        DEFINED_DIRECTIVES.put("ENDIF",new Directive(true,false,true) {
+        DEFINED_DIRECTIVES.put("ENDIF",new Directive(true) {
             @Override
             public void process(ProgramCompiler compiler, String args) throws CompilerException {
                 compiler.endIf();
@@ -326,30 +297,30 @@ public abstract class Directive implements IDirective {
         DEFINED_DIRECTIVES.put("ELSE",new Directive(true) {
             @Override
             public void process(ProgramCompiler compiler, String args) throws CompilerException {
-                compiler.elseIf(null);
+                compiler.elseIf(true);
             }
         });
 
-        DEFINED_DIRECTIVES.put("NOLIST",new Directive(true) {
+        DEFINED_DIRECTIVES.put("NOLIST",new Directive(false) {
             @Override
             public void process(ProgramCompiler compiler, String args) throws CompilerException {
-                compiler.setListing(ProgramCompiler.ListingMode.NO_LIST);
+                compiler.setListing(NO_LIST);
             }
         });
-        DEFINED_DIRECTIVES.put("LIST",new Directive(true) {
+        DEFINED_DIRECTIVES.put("LIST",new Directive(false) {
             @Override
             public void process(ProgramCompiler compiler, String args) throws CompilerException {
-                compiler.setListing(ProgramCompiler.ListingMode.LIST);
+                compiler.setListing(LIST);
             }
         });
-        DEFINED_DIRECTIVES.put("LISTMAC",new Directive(true) {
+        DEFINED_DIRECTIVES.put("LISTMAC",new Directive(false) {
             @Override
             public void process(ProgramCompiler compiler, String args) throws CompilerException {
-                compiler.setListing(ProgramCompiler.ListingMode.LIST_MACRO);
+                compiler.setListing(LIST_MACRO);
             }
         });
 
-        DEFINED_DIRECTIVES.put("INCLUDE",new Directive(true) {
+        DEFINED_DIRECTIVES.put("INCLUDE",new Directive(false) {
             @Override
             public void process(ProgramCompiler compiler, String args) throws CompilerException {
                 {

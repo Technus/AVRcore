@@ -11,72 +11,201 @@ import jdk.nashorn.api.scripting.NashornScriptEngineFactory;
 
 import javax.script.ScriptException;
 import javax.script.SimpleBindings;
-import java.io.File;
 import java.io.IOException;
-import java.io.Writer;
-import java.nio.file.Files;
 import java.util.*;
 
+import static com.github.technus.avrClone.compiler.LineConsumer.*;
+
 public final class ProgramCompiler {
-    public ProgramCompiler(){}
+    private static final String SANDBOX =
+            "var eval=function(){};var uneval=function(){};" +
+                    "var decodeURI=function(){};var decodeURIComponent=function(){};" +
+                    "var encodeURI=function(){};var encodeURIComponent=function(){};" +
+                    "var escape=function(){};var unescape=function(){};" +
+                    "var quit=function(){};var exit=function(){};" +
+                    "var print=function(){};var echo = function(){};" +
+                    "var readFully=function(){};" + "var readLine=function(){};" +
+                    "var load=function(){};var loadWithNewGlobal=function(){};\n";
 
-    private HashMap<String,ArrayList<String>> files =new HashMap<>();
-    private HashMap<String,HashSet<Integer>> unusedLines=new HashMap<>();
+    //region fields
+    private ArrayList<String> mainFile;
+    private HashMap<String,ArrayList<String>> includedFiles;
 
-    private ArrayList<String> intermediate =new ArrayList<>();
-    private ArrayList<String> programOutput=new ArrayList<>();
+    private int currentLine;
+    private HashSet<String> labelsAndPointersToAssign;
+    private ArrayList<String> lines;
+    private ArrayList<Position> positions;
+    private ArrayList<Boolean> processedLines;
 
-    public ArrayList<String> writeProgram(ArrayList<String> lines) throws Exception{
-        for (int i=0;i<lines.size();i++) {
-            lines.set(i,sanitizeLine(lines.get(i)));
+    private HashMap<Integer,Integer>[] constants;
+
+    private Segment currentSegment;
+
+    private int[] startOffset,origins;
+
+    private boolean[] overlap;
+    private BitSet[] constantRanges;
+
+    private CompilerBindings compilerBindings;
+    private CompilerContext scriptContext;
+    private NashornScriptEngine scriptEngine;
+
+    private ArrayList<ConditionalState> compilationEnabled;
+
+    private HashMap<String,ArrayList<String>> macros;
+    private HashSet<String> editingMacros;
+
+    private ListingMode listing;
+
+    private Includer includer;
+    private HashMap<String,IDirective> instanceDirectives;
+
+    private ArrayList<String> madeFile;
+    //endregion
+
+    public ProgramCompiler(){
+        reset();
+    }
+
+    @SuppressWarnings("unchecked")
+    private void reset() {
+        mainFile = null;
+        includedFiles = new HashMap<>(8);
+
+        currentLine=0;
+        labelsAndPointersToAssign =new HashSet<>();
+        positions=new ArrayList<>(512);
+        processedLines=new ArrayList<>(512);
+        lines=new ArrayList<>(512);
+
+        currentSegment = Segment.CSEG;
+
+        startOffset = new int[Segment.values().length];
+        origins = new int[Segment.values().length];
+
+        overlap = new boolean[Segment.values().length];
+
+        constants=new HashMap[Segment.values().length];
+        for(int i=0;i<constants.length;i++){
+            constants[i]=new HashMap<>();
         }
-        //work on lines
-        //parse bindings,macro lengths, execute directives no forward reference allowed in directives
-        compilerBindings.removeAllUnsafely(Binding.NameType.DEF,Binding.NameType.SET);
-        //work on program
-        //parse rest, back reference must be allowed only for labels
+        constantRanges = new BitSet[Segment.values().length];
+        for (int i = 0; i < constantRanges.length; i++) {
+            constantRanges[i] = new BitSet(4096);
+        }
+
+        compilerBindings = new CompilerBindings(64);
+        SimpleBindings globalBindings = new SimpleBindings();
+        scriptContext = new CompilerContext(compilerBindings, globalBindings);
+        ClassLoader ccl = Thread.currentThread().getContextClassLoader();
+        ccl = ccl == null ? NashornScriptEngineFactory.class.getClassLoader() : ccl;
+        scriptEngine = (NashornScriptEngine) new NashornScriptEngineFactory()
+                .getScriptEngine(new String[]{"--no-java"}, ccl, s -> false);
+        scriptEngine.setContext(scriptContext);
+
+        compilationEnabled = new ArrayList<>();
+
+        macros = new HashMap<>();
+        editingMacros = new HashSet<>();
+
+        listing = ListingMode.LIST;
+
+        madeFile=null;
     }
 
-    //region line consumer
-    public ArrayList<String> firstPass(String line){
-
+    //region input file
+    public void setInputFile(ArrayList<String> content) throws Exception{
+        reset();
+        if(content==null){
+            throw new CompilerException("Cannot read file!");
+        }
+        loadMainFile(content);
     }
-
-    public ArrayList<String> secondPass(String line){
-
+    public void setInputFile(String file) throws Exception {
+        reset();
+        if (includer == null) {
+            throw new InvalidInclude("No include processor set!");
+        }
+        ArrayList<String> lines=includer.include(file);
+        if(lines==null){
+            throw new InvalidInclude("Unable to include file! "+file);
+        }
+        loadMainFile(lines);
     }
-    public String sanitizeLine(String line){
-        return line
-                .replaceAll("[\\s\\r\\n]+"," ")
-                .replaceFirst("^ ","")
-                .replaceFirst(" $","")
-                .replaceFirst(" *: *",":")
-                .replaceFirst(" *;.*$","")
-                .replaceFirst(" *\\\\.*$","");
+    private void loadMainFile(ArrayList<String> main){
+        mainFile=sanitizeList(main);
+        lines.addAll(mainFile);
+        for(int i=0;i<lines.size();i++){
+            positions.add(new Position(i,null));
+            processedLines.add(false);
+        }
+    }
+    public void writeProgram() throws Exception{
+        if(mainFile==null){
+            throw new CompilerException("No main file loaded!");
+        }
+        boolean directivesProcessed;
+        do {
+            directivesProcessed=true;
+            for(currentLine=0;currentLine<lines.size();currentLine++){
+                String line=lines.get(currentLine);
+
+                if(isCompilationEnabled()){
+                    String labelOrPointer= getLabelOrPointerName(line);
+                    if(labelOrPointer!=null){
+                        labelsAndPointersToAssign.add(labelOrPointer);
+                    }
+                }
+                String directiveName=getDirectiveName(line);
+                String mnemonic = getMnemonic(line);
+                if(!processedLines.get(currentLine)){
+                    
+                }
+                if (directiveName != null && mnemonic!=null){
+                    throw new CompilerException("Invalid line: "+line);
+                }
+                if(directiveName!=null && !processedLines.get(currentLine)) {
+                    IDirective directive = getDirective(directiveName);
+                    if(directive!=null){
+                        try {
+                            directive.process(this, getExpressionsString(line));
+                            processedLines.set(currentLine,true);
+                            directivesProcessed=false;
+                        }catch (EvaluationException e){
+                            writeError("First multi pass: "+e.getMessage());
+                        }
+                    }
+                }
+
+            }
+        }while (!directivesProcessed);
+        ArrayList<String> made=new ArrayList<>();
+        boolean programGenerated;
+        do{
+            programGenerated=true;
+            for(currentLine=0;currentLine<lines.size();currentLine++){
+                String line=lines.get(currentLine);
+            }
+        }while (!programGenerated);
+        boolean programWritten;
+        do{
+            programWritten=true;
+            for(currentLine=0;currentLine<lines.size();currentLine++){
+                String line=lines.get(currentLine);
+            }
+        }while (!programWritten);
+
+        madeFile=made;
+    }
+    public ArrayList<String> getInputFile() {
+        return mainFile;
+    }
+    public ArrayList<String> getMadeFile() {
+        return madeFile;
     }
     //endregion
 
     //region include
-    public interface Includer {
-        ArrayList<String> include(String path) throws CompilerException;
-    }
-    private Includer includer = path -> {
-        File f=new File(path);
-        if(!f.exists()){
-            throw new InvalidInclude("File does not exist! "+path);
-        }
-        if(f.isDirectory()){
-            throw new InvalidInclude("Cannot include a directory! "+path);
-        }
-        if(!f.canRead()){
-            throw new InvalidInclude("File is not readable! "+path);
-        }
-        try{
-            return (ArrayList<String>) Files.readAllLines(f.toPath());
-        }catch (Exception e){
-            throw new InvalidInclude("Failed to read file! "+path,e);
-        }
-    };
     public void setIncluder(Includer include) {
         this.includer = include;
     }
@@ -84,35 +213,46 @@ public final class ProgramCompiler {
         return includer;
     }
     public void include(String file) throws CompilerException{
-        if (includer == null) {
-            throw new InvalidInclude("No include processor set!");
+        ArrayList<String> list=includedFiles.get(file);
+        if(list==null){
+            if (includer == null) {
+                throw new InvalidInclude("No include processor set!");
+            }
+            list=includer.include(file);
+            if(list==null){
+                throw new InvalidInclude("Unable to include file! "+file);
+            }
+            list=sanitizeList(list);
+            includedFiles.put(file,list);
         }
-        files.put(file,includer.include(file));
+        //inject lines
+        int nextLine=currentLine+1;
+
+        ArrayList<Position> pos=new ArrayList<>();
+        ArrayList<Boolean> bools=new ArrayList<>();
+        for(int i=0;i<list.size();i++){
+            pos.add(new Position(i,file));
+            bools.add(false);
+        }
+        positions.addAll(nextLine,pos);
+        processedLines.addAll(nextLine,bools);
+        lines.addAll(nextLine,list);
     }
     //endregion
 
     //region segment
-    public enum Segment{
-        CSEG,DSEG,ESEG
-    }
-    private Segment currentSegment=Segment.CSEG;
     public void setCurrentSegment(Segment currentSegment) throws InvalidMemorySegment{
         if(currentSegment==null){
             throw new InvalidMemorySegment("Segment cannot be null!");
         }
         this.currentSegment = currentSegment;
     }
-
     public Segment getCurrentSegment() {
         return currentSegment;
     }
     //endregion
 
     //region start offsets
-    private int[] startOffset=new int[Segment.values().length];
-    {
-        startOffset[Segment.ESEG.ordinal()]=4096;
-    }
     public int getCurrentSegmentOffset(){
         return startOffset[currentSegment.ordinal()];
     }
@@ -134,9 +274,11 @@ public final class ProgramCompiler {
     //endregion
 
     //region overlap policy
-    private boolean[] overlap=new boolean[Segment.values().length];
     public void setCurrentOverlap(boolean value){
         overlap[currentSegment.ordinal()]=value;
+    }
+    public void setOverlap(Segment segment,boolean value){
+        overlap[segment.ordinal()]=value;
     }
     public boolean getCurrentOverlap() {
         return overlap[currentSegment.ordinal()];
@@ -147,7 +289,6 @@ public final class ProgramCompiler {
     //endregion
 
     //region origin
-    private int[] origins =new int[Segment.values().length];
     public void offsetCurrentOrigin(int value) throws InvalidOrigin {
         if(origins[currentSegment.ordinal()]+value<0){
             throw new InvalidOrigin("Origin must be not negative! "+origins[currentSegment.ordinal()]+"+"+value);
@@ -174,39 +315,33 @@ public final class ProgramCompiler {
     }
     //endregion
 
-    //region mem use
-    private BitSet[] usedMemoryRanges =new BitSet[Segment.values().length];
-    {
-        for(int i = 0; i< usedMemoryRanges.length; i++){
-            usedMemoryRanges[i]=new BitSet(4096);
-        }
-    }
+    //region mem use - for CSEG after instructions!
     public int getCurrentMemorySize(){
-        return usedMemoryRanges[currentSegment.ordinal()].length();
+        return constantRanges[currentSegment.ordinal()].length();
     }
     public int getMemorySize(Segment segment){
-        return usedMemoryRanges[segment.ordinal()].length();
+        return constantRanges[segment.ordinal()].length();
     }
     public boolean isCurrentMemoryCellFree(){
-        return usedMemoryRanges[currentSegment.ordinal()].get(getCurrentOrigin());
+        return constantRanges[currentSegment.ordinal()].get(getCurrentOrigin());
     }
     public boolean isCurrentMemoryCellFree(int address) throws InvalidMemoryAccess {
         if(address<0){
             throw new InvalidMemoryAccess("Memory address must be not negative! "+address);
         }
-        return usedMemoryRanges[currentSegment.ordinal()].get(address);
+        return constantRanges[currentSegment.ordinal()].get(address);
     }
     public boolean isMemoryCellFree(Segment segment,int address) throws InvalidMemoryAccess {
         if(address<0){
             throw new InvalidMemoryAccess("Memory address must be not negative! "+address);
         }
-        return usedMemoryRanges[segment.ordinal()].get(address);
+        return constantRanges[segment.ordinal()].get(address);
     }
     public boolean isCurrentMemoryRangeFree(int toExclusive) throws InvalidMemoryAccess {
         if(getCurrentOrigin()>=toExclusive){
             throw new InvalidMemoryAccess("Range end must be greater than origin! "+getCurrentOrigin()+" !< "+toExclusive);
         }
-        return usedMemoryRanges[currentSegment.ordinal()].nextClearBit(getCurrentOrigin())>=toExclusive;
+        return constantRanges[currentSegment.ordinal()].nextClearBit(getCurrentOrigin())>=toExclusive;
     }
     public boolean isCurrentMemoryRangeFree(int fromInclusive,int toExclusive) throws InvalidMemoryAccess {
         if(fromInclusive<0){
@@ -215,7 +350,7 @@ public final class ProgramCompiler {
         if(fromInclusive>=toExclusive){
             throw new InvalidMemoryAccess("Range end must be greater than range start! "+fromInclusive+" !< "+toExclusive);
         }
-        return usedMemoryRanges[currentSegment.ordinal()].nextClearBit(fromInclusive)>=toExclusive;
+        return constantRanges[currentSegment.ordinal()].nextClearBit(fromInclusive)>=toExclusive;
     }
     public boolean isMemoryRangeFree(Segment segment,int fromInclusive,int toExclusive) throws InvalidMemoryAccess{
         if(fromInclusive<0){
@@ -224,14 +359,14 @@ public final class ProgramCompiler {
         if(fromInclusive>=toExclusive){
             throw new InvalidMemoryAccess("Range end must be greater than range start! "+fromInclusive+" !< "+toExclusive);
         }
-        return usedMemoryRanges[segment.ordinal()].nextClearBit(fromInclusive)>=toExclusive;
+        return constantRanges[segment.ordinal()].nextClearBit(fromInclusive)>=toExclusive;
     }
     public boolean isCurrentMemoryBlockFree(int size) throws InvalidMemoryAccess {
         if(size<=0){
             throw new InvalidMemoryAccess("Block size must be positive! "+size);
         }
         int offset=getCurrentOrigin();
-        return usedMemoryRanges[currentSegment.ordinal()].nextClearBit(offset)>=offset+size;
+        return constantRanges[currentSegment.ordinal()].nextClearBit(offset)>=offset+size;
     }
     public boolean isCurrentMemoryBlockFree(int start,int size)throws InvalidMemoryAccess{
         if(start<0){
@@ -240,7 +375,7 @@ public final class ProgramCompiler {
         if(size<=0){
             throw new InvalidMemoryAccess("Block size must be positive! "+size);
         }
-        return usedMemoryRanges[currentSegment.ordinal()].nextClearBit(start)>=start+size;
+        return constantRanges[currentSegment.ordinal()].nextClearBit(start)>=start+size;
     }
     public boolean isMemoryBlockFree(Segment segment,int start,int size)throws InvalidMemoryAccess{
         if(start<0){
@@ -249,45 +384,61 @@ public final class ProgramCompiler {
         if(size<=0){
             throw new InvalidMemoryAccess("Block size must be positive! "+size);
         }
-        return usedMemoryRanges[segment.ordinal()].nextClearBit(start)>=start+size;
+        return constantRanges[segment.ordinal()].nextClearBit(start)>=start+size;
     }
     //endregion
 
     //region constants
-    @SuppressWarnings("unchecked")
-    private TreeMap<Integer,Integer>[] constants=new TreeMap[Segment.values().length];
-    {
-        for(int i=0;i<constants.length;i++){
-            constants[i]=new TreeMap<>();
+    public boolean putConstant(int constant) throws InvalidOrigin,InvalidMemoryAllocation{
+        if(currentSegment==Segment.DSEG){
+            throw new InvalidMemoryAllocation("Cannot store constants in volatile memory! "+constant);
         }
-    }
-    public boolean putConstant(int constant) throws InvalidOrigin{
+        int segment=currentSegment.ordinal();
+        if(currentSegment==Segment.CSEG){
+            constants[segment].put(constants[segment].size(),constant);
+            return true;
+        }
         if(getCurrentOverlap() || isCurrentMemoryCellFree()){
-            int segment=currentSegment.ordinal();
             int origin=getCurrentOrigin();
-            usedMemoryRanges[segment].set(origin);
+            constantRanges[segment].set(origin);
             constants[segment].put(origin,constant);
             offsetCurrentOrigin(1);
             return true;
         }
         return false;
     }
-    public boolean putConstant(float constant) throws InvalidOrigin{
+    public boolean putConstant(float constant) throws InvalidOrigin,InvalidMemoryAllocation{
+        if(currentSegment==Segment.DSEG){
+            throw new InvalidMemoryAllocation("Cannot store constants in volatile memory! "+constant);
+        }
+        int segment=currentSegment.ordinal();
+        if(currentSegment==Segment.CSEG){
+            constants[segment].put(constants[segment].size(),Float.floatToIntBits(constant));
+            return true;
+        }
         if(getCurrentOverlap() || isCurrentMemoryCellFree()){
-            int segment=currentSegment.ordinal();
             int origin=getCurrentOrigin();
-            usedMemoryRanges[segment].set(origin);
+            constantRanges[segment].set(origin);
             constants[segment].put(origin,Float.floatToIntBits(constant));
             offsetCurrentOrigin(1);
             return true;
         }
         return false;
     }
-    public boolean putConstant(long constant) throws InvalidOrigin,InvalidMemoryAccess{
+    public boolean putConstant(long constant) throws InvalidOrigin,InvalidMemoryAccess,InvalidMemoryAllocation{
+        if(currentSegment==Segment.DSEG){
+            throw new InvalidMemoryAllocation("Cannot store constants in volatile memory! "+constant);
+        }
+        int segment=currentSegment.ordinal();
+        if(currentSegment==Segment.CSEG){
+            int origin=constants[segment].size();
+            constants[segment].put(origin,(int)constant);
+            constants[segment].put(origin+1,(int)(constant>>32));
+            return true;
+        }
         if(getCurrentOverlap() || isCurrentMemoryBlockFree(2)){
-            int segment=currentSegment.ordinal();
             int origin=getCurrentOrigin();
-            usedMemoryRanges[segment].set(origin,origin+2);
+            constantRanges[segment].set(origin,origin+2);
             constants[segment].put(origin,(int)constant);
             constants[segment].put(origin+1,(int)(constant>>32));
             offsetCurrentOrigin(2);
@@ -295,18 +446,28 @@ public final class ProgramCompiler {
         }
         return false;
     }
-    public boolean putConstant(String constant) throws InvalidOrigin,InvalidMemoryAccess,InvalidConstant {
+    public boolean putConstant(String constant) throws InvalidOrigin,InvalidMemoryAccess,InvalidMemoryAllocation,InvalidConstant {
+        if(currentSegment==Segment.DSEG){
+            throw new InvalidMemoryAllocation("Cannot store constants in volatile memory! "+constant);
+        }
         if(constant==null){
             throw new InvalidConstant("String constant cannot be null!");
         }
         if(constant.length()==0){
             throw new InvalidConstant("String constant must not be empty!");
         }
+        int segment=currentSegment.ordinal();
+        if(currentSegment==Segment.CSEG){
+            int origin=constants[segment].size();
+            for(int i=0;i<constant.length();i++){
+                constants[segment].put(origin+i,(int)constant.charAt(i));
+            }
+            return true;
+        }
         int length=constant.length();
         if(getCurrentOverlap() || isCurrentMemoryBlockFree(length)){
-            int segment=currentSegment.ordinal();
             int origin=getCurrentOrigin();
-            usedMemoryRanges[segment].set(origin,origin+length);
+            constantRanges[segment].set(origin,origin+length);
             for(int i=0;i<constant.length();i++){
                 constants[segment].put(origin+i,(int)constant.charAt(i));
             }
@@ -316,13 +477,16 @@ public final class ProgramCompiler {
         return false;
     }
     public boolean reserveMemory(int cellCount) throws InvalidOrigin,InvalidMemoryAccess,InvalidMemoryAllocation {
+        if(currentSegment==Segment.CSEG){
+            throw new InvalidMemoryAllocation("Cannot store variables in program memory! "+cellCount);
+        }
         if(cellCount<=0){
             throw new InvalidMemoryAllocation("Memory block size must have positive size! "+cellCount);
         }
         if(getCurrentOverlap() || isCurrentMemoryBlockFree(cellCount)){
             int segment=currentSegment.ordinal();
             int origin=getCurrentOrigin();
-            usedMemoryRanges[segment].set(origin,origin+cellCount);
+            constantRanges[segment].set(origin,origin+cellCount);
             for(int i=0;i<cellCount;i++){
                 constants[segment].put(origin+i,0);
             }
@@ -334,123 +498,78 @@ public final class ProgramCompiler {
     //endregion
 
     //region compute
-    private CompilerBindings compilerBindings = new CompilerBindings();
-    private static SimpleBindings globalBindings = new SimpleBindings();
-    private CompilerContext scriptContext =new CompilerContext(compilerBindings,globalBindings);
-    private NashornScriptEngine scriptEngine;
-    private static String sb =
-            "var eval=function(){};var uneval=function(){};" +
-            "var decodeURI=function(){};var decodeURIComponent=function(){};" +
-            "var encodeURI=function(){};var encodeURIComponent=function(){};" +
-            "var escape=function(){};var unescape=function(){};" +
-            "var quit=function(){};var exit=function(){};" +
-            "var print=function(){};var echo = function(){};" +
-            "var readFully=function(){};" + "var readLine=function(){};" +
-            "var load=function(){};var loadWithNewGlobal=function(){};\n";
-    {
-        ClassLoader ccl = Thread.currentThread().getContextClassLoader();
-        ccl= ccl == null ? NashornScriptEngineFactory.class.getClassLoader() : ccl;
-        scriptEngine=(NashornScriptEngine)new NashornScriptEngineFactory().getScriptEngine(
-                new String[]{"--no-java"}, ccl, s -> false);
-        scriptEngine.setContext(scriptContext);
-    }
-    public String computeString(String script) throws EvaluationException,PrintingException{
+    public String computeString(String script) throws EvaluationException{
         try {
-            Object value = scriptEngine.eval(sb + script);
+            Object value = scriptEngine.eval(SANDBOX + script);
             if(value instanceof String){
                 return (String) value;
+            }else if(value instanceof Number || value instanceof Boolean){
+                return value.toString();
             }
-            scriptContext.getErrorWriter().write("Returned type: "+value.getClass().getCanonicalName());
+            writeError("Returned type: " + value.getClass().getCanonicalName());
             return value.toString();
         }catch (ScriptException e){
             throw new EvaluationException("Cannot evaluate! "+script,e);
-        }catch (IOException e){
-            throw new PrintingException("Cannot print return type!",e);
         }
     }
-    public Number computeValue(String script) throws EvaluationException,PrintingException{
+    public Number computeValue(String script) throws EvaluationException{
         try {
-            Object value = scriptEngine.eval(sb + script);
+            Object value = scriptEngine.eval(SANDBOX + script);
             if (value instanceof Number) {
                 return (Number) value;
             } else if (value instanceof Boolean) {
                 return (Boolean) value ? 1 : 0;
             }
-            scriptContext.getErrorWriter().write("Returned type: " + value.getClass().getCanonicalName());
+            writeError("Returned type: " + value.getClass().getCanonicalName());
             return 0;
         } catch (ScriptException e) {
             throw new EvaluationException("Cannot evaluate! " + script, e);
-        } catch (IOException e) {
-            throw new PrintingException("Cannot print return type!", e);
         }
     }
-    public Boolean computeBoolean(String script) throws EvaluationException,PrintingException{
+    public Boolean computeBoolean(String script) throws EvaluationException{
         try {
-            Object value = scriptEngine.eval(sb + script);
+            Object value = scriptEngine.eval(SANDBOX + script);
             if (value instanceof Boolean) {
                 return (Boolean) value;
             } else if (value instanceof Number) {
                 return ((Number) value).intValue() != 0;
             }
-            scriptContext.getErrorWriter().write("Returned type: " + value.getClass().getCanonicalName());
+            writeError("Returned type: " + value.getClass().getCanonicalName());
             return false;
         } catch (ScriptException e) {
             throw new EvaluationException("Cannot evaluate! " + script, e);
-        } catch (IOException e) {
-            throw new PrintingException("Cannot print return type!", e);
         }
     }
-    public Object computeObject(String script) throws EvaluationException,PrintingException{
+    public Object computeObject(String script) throws EvaluationException{
         try {
-            Object value = scriptEngine.eval(sb + script);
+            Object value = scriptEngine.eval(SANDBOX + script);
             if (value instanceof Number) {
                 return ((Number) value).doubleValue();
             } else if (value instanceof Boolean) {
                 return (Boolean) value ? 1 : 0;
             }
-            scriptContext.getErrorWriter().write("Returned type: " + value.getClass().getCanonicalName());
-            return value;
+            writeError("Returned type: " + value.getClass().getCanonicalName());
+            return null;
         } catch (ScriptException e) {
             throw new EvaluationException("Cannot evaluate! " + script, e);
-        } catch (IOException e) {
-            throw new PrintingException("Cannot print return type!", e);
         }
-    }
-    public Writer getErrorWriter(){
-        return scriptContext.getErrorWriter();
-    }
-    public Writer getWriter(){
-        return scriptContext.getWriter();
     }
     public void writeError(String s)throws PrintingException{
         try {
-            scriptContext.getErrorWriter().write(s);
+            scriptContext.getErrorWriter().write(s+"\n");
         }catch (IOException e){
             throw new PrintingException("Cannot print error! "+s,e);
         }
     }
     public void write(String s) throws PrintingException{
         try {
-            scriptContext.getWriter().write(s);
+            scriptContext.getWriter().write(s+"\n");
         }catch (IOException e){
             throw new PrintingException("Cannot print! "+s,e);
         }
     }
-    public void putBinding(String name,Binding binding) throws InvalidBinding{
-        if(name==null || name.length()==0 || name.replaceFirst("[a-zA-Z][0-9a-zA-Z_]*","").length()>0){
-            throw new InvalidBinding("Invalid binding name specified! "+name);
-        }
-        Binding old=compilerBindings.get(name);
-        if(old!=null) {
-            switch (old.type) {
-                case SET: case DEF: break;
-                default: throw new InvalidBinding("Cannot rewrite that binding! " + old.type.name()+" "+name);
-            }
-        }
-        compilerBindings.put(name,binding);
-    }
     public void removeBinding(String name) throws InvalidBinding{
-        Binding old=compilerBindings.get(name);
+        Binding old=compilerBindings.getBinding(name);
         if(old==null){
             throw new InvalidBinding("Cannot remove binding name is unused! "+name);
         }
@@ -466,12 +585,25 @@ public final class ProgramCompiler {
     public boolean lacksNotDefs(String... keys){
         return compilerBindings.lacksNotDefs(keys);
     }
+    public void putBinding(String name,Binding binding) throws InvalidBinding{
+        if(name==null || name.length()==0 || !name.matches(NAME_FORMAT)){
+            throw new InvalidBinding("Invalid binding name specified! "+name);
+        }
+        Binding old=compilerBindings.getBinding(name);
+        if(old!=null) {
+            switch (old.type) {
+                case SET: case DEF: break;
+                default: throw new InvalidBinding("Cannot rewrite that binding! " + old.type.name()+" "+name);
+            }
+        }
+        compilerBindings.put(name,binding);
+    }
     //endregion
 
     //region parse
     public Number parseValue(String value){
         if(compilerBindings.containsKey(value)) {
-            return compilerBindings.get(value).value;
+            return compilerBindings.getBinding(value).value;
         }
         return parseNumberAdvanced(value);
     }
@@ -495,34 +627,24 @@ public final class ProgramCompiler {
     //endregion
 
     //region conditional compiler
-    //true - yes curretnly is doing it
-    //false - did that on this level, or skipping this level
-    //null - didn't do that on this level
-    private ArrayList<Boolean> compilationEnabled=new ArrayList<>();
     public void openIf(boolean compilationEnable){
         if(compilationEnabled.size()>0){
-            Boolean b=compilationEnabled.get(compilationEnabled.size()-1);
-            if(b==null || !b){//if not compile
-                compilationEnabled.add(false);
+            if(compilationEnabled.get(compilationEnabled.size()-1)!=ConditionalState.ASSEMBLING){//if not compile
+                compilationEnabled.add(ConditionalState.DISABLED);
                 return;
             }
         }
-        compilationEnabled.add(compilationEnable?true:null);
+        compilationEnabled.add(compilationEnable?ConditionalState.ASSEMBLING:ConditionalState.CHECKING);
     }
-    //null for else
-    public void elseIf(Boolean compilationEnable) throws InvalidConditionalStatement {
+    public void elseIf(boolean compilationEnable) throws InvalidConditionalStatement {
         if (compilationEnabled.size() <= 0) {
             throw new InvalidConditionalStatement("Missing if opening statement!");
         }
-        Boolean b = compilationEnabled.get(compilationEnabled.size() - 1);
-        if (b == null) {
-            if (compilationEnable == null) {
-                compilationEnabled.set(compilationEnabled.size() - 1, true);
-            } else {
-                compilationEnabled.set(compilationEnabled.size() - 1, compilationEnable ? true : null);
-            }
-        } else {
-            compilationEnabled.set(compilationEnabled.size() - 1, false);
+        ConditionalState b = compilationEnabled.get(compilationEnabled.size() - 1);
+        if (b == ConditionalState.CHECKING) {
+            compilationEnabled.set(compilationEnabled.size()-1,compilationEnable?ConditionalState.ASSEMBLING:ConditionalState.CHECKING);
+        } else if (b == ConditionalState.ASSEMBLING) {
+            compilationEnabled.set(compilationEnabled.size() - 1, ConditionalState.DISABLED);
         }
     }
     public void endIf() throws InvalidConditionalStatement {
@@ -535,8 +657,7 @@ public final class ProgramCompiler {
         if(compilationEnabled.size()==0){
             return true;
         }
-        Boolean b=compilationEnabled.get(compilationEnabled.size()-1);
-        return b!=null && b;
+        return compilationEnabled.get(compilationEnabled.size()-1)==ConditionalState.ASSEMBLING;
     }
     public int getDepth(){
         return compilationEnabled.size();
@@ -544,16 +665,17 @@ public final class ProgramCompiler {
     //endregion
 
     //region macro compiler
-    private HashMap<String,ArrayList<String>> macros=new HashMap<>();
-    private HashSet<String> editingMacros =new HashSet<>();
     public void addMacro(String name) throws InvalidMacroStatement{
-        if(name==null || name.length()==0 || name.replaceFirst("[a-zA-Z][0-9a-zA-Z_]*","").length()>0){
+        if(name==null || name.length()==0 || !name.matches(NAME_FORMAT)){
             throw new InvalidMacroStatement("Invalid macro name specified! "+name);
         }
         macros.put(name,new ArrayList<>());
         editingMacros.add(name);
     }
     public void addToMacros(String line) throws InvalidMacroStatement{
+        if(line==null){
+            throw new InvalidMacroStatement("Invalid macro line specified!");
+        }
         if(editingMacros.isEmpty()){
             throw new InvalidMacroStatement("Is not editing any macros!");
         }
@@ -568,21 +690,20 @@ public final class ProgramCompiler {
     public boolean isNotEditingMacros(){
         return editingMacros.isEmpty();
     }
-    public ArrayList<String> writeMacro(String name,String args) throws InvalidMacroStatement,EvaluationException,PrintingException{
-        String[] arg=args.split(",");
+    public ArrayList<String> writeMacro(String name,String args) throws InvalidMacroStatement,EvaluationException{
         ArrayList<String> macro=macros.get(name);
         if(macro==null){
             throw new InvalidMacroStatement("Macro was never defined! "+name);
         }
-        Object[] values=new Number[arg.length];
-        for(int i=0;i<values.length;i++){
-            values[i]=computeObject(arg[i]);
+        String[] arg=splitExpressionsString(args);
+        for(int i=0;i<arg.length;i++){
+            arg[i]=computeString(arg[i]);
         }
         ArrayList<String> newLines=new ArrayList<>();
         for(String s:macro){
             String temp=s;
-            for(int i=0;i<values.length;i++){
-                temp=temp.replaceAll("@"+i,values[i].toString());
+            for(int i=arg.length-1;i>=0;i--){
+                temp=temp.replaceAll("@"+i,arg[i]);
             }
             if(temp.contains("@")){
                 throw new InvalidMacroStatement("Cannot write macro line! "+s);
@@ -591,13 +712,23 @@ public final class ProgramCompiler {
         }
         return newLines;
     }
+    public void injectMacro(String name,String args) throws InvalidMacroStatement,EvaluationException{
+        ArrayList<String> macro=writeMacro(name,args);
+        int nextLine=currentLine+1;
+
+        ArrayList<Position> pos=new ArrayList<>();
+        ArrayList<Boolean> bools=new ArrayList<>();
+        for(int i=0;i<macro.size();i++){
+            pos.add(new Position(i,"@"+macro));
+            bools.add(false);
+        }
+        positions.addAll(nextLine,pos);
+        processedLines.addAll(nextLine,bools);
+        lines.addAll(nextLine,macro);
+    }
     //endregion
 
     //region listing
-    public enum ListingMode{
-        NO_LIST,LIST,LIST_MACRO
-    }
-    private ListingMode listing=ListingMode.LIST;
     public void setListing(ListingMode mode) throws InvalidListingMode{
         if(mode==null){
             throw new InvalidListingMode("Listing mode cannot be null!");
@@ -613,19 +744,26 @@ public final class ProgramCompiler {
     //endregion
 
     //region directive
-    public HashMap<String,IDirective> localDirectives=new HashMap<>();
-    public HashSet<String> localUnskippableDirectives =new HashSet<>();
+    public IDirective putDirective(String name,IDirective directive) throws InvalidDirective {
+        if(name==null || name.length()==0 || !name.matches(NAME_FORMAT)){
+            throw new InvalidDirective("Invalid directive name specified! "+name);
+        }
+        return instanceDirectives.put(name,directive);
+    }
     public IDirective getDirective(String name) throws InvalidDirective {
-        IDirective directive=localDirectives.get(name);
-        if(directive!=null && (isCompilationEnabled() || localUnskippableDirectives.contains(name))){
+        if(name==null || name.length()==0 || !name.matches(NAME_FORMAT)){
+            throw new InvalidDirective("Invalid directive name specified! "+name);
+        }
+        IDirective directive= instanceDirectives.get(name);
+        if(directive!=null && (isCompilationEnabled() || directive.isUnskippable())){
             return directive;
         }
         directive=Directive.DEFINED_DIRECTIVES.get(name);
-        if(directive!=null && (isCompilationEnabled() || Directive.UNSKIPPABLE_DIRECTIVES.contains(name))){
+        if(directive!=null && (isCompilationEnabled() || directive.isUnskippable())){
             return directive;
         }
-        if(isCompilationEnabled()){
-            throw new InvalidDirective("IDirective is not defined! "+name);
+        if(isCompilationEnabled() && directive==null){
+            throw new InvalidDirective("Directive is not defined! "+name);
         }
         return null;
     }
