@@ -145,7 +145,7 @@ public final class ProgramCompiler {
         mainFile=sanitizeList(main);
         lines.addAll(mainFile);
         for(int i=0;i<lines.size();i++){
-            positions.add(new Position(i,null));
+            positions.add(new Position(i,".\\"));
             processedLines.add(false);
             argHolder.add(null);
         }
@@ -207,18 +207,6 @@ public final class ProgramCompiler {
                                             }
                                             writeError("WARN: " + exception.getMessage());
                                         }
-                                    } catch (ExitDirective e) {
-                                        Position pos = positions.get(currentLine);
-                                        String file = pos.file;
-                                        processedLines.set(currentLine, true);
-                                        for (currentLine++; currentLine < lines.size(); currentLine++) {
-                                            if (file.equals(positions.get(currentLine).file)) {
-                                                processedLines.set(currentLine, true);
-                                            } else {
-                                                currentLine--;
-                                                break;
-                                            }
-                                        }
                                     }
                                 }
                             } else if (mnemonic != null) {
@@ -237,6 +225,7 @@ public final class ProgramCompiler {
                         }
                     }
                 } while (didSomething);
+
                 if (firstUnskippableFail >= 0) {
                     Position pos = positions.get(firstUnskippableFail);
                     if (pos.file == null) {
@@ -253,7 +242,11 @@ public final class ProgramCompiler {
             }
 
             for (Map.Entry<String, Binding> entry : tempBindings.entrySet()) {
+                if(entry.getValue().type==Binding.NameType.LABEL){
+                    continue;
+                }
                 putBinding(entry.getKey(), entry.getValue());
+                tempBindings.remove(entry.getKey());
             }
 
             labelsOrPointersToAssign.clear();
@@ -290,6 +283,14 @@ public final class ProgramCompiler {
                     labelsOrPointersToAssign.clear();
                 }
             }
+
+            for (Map.Entry<String, Binding> entry : tempBindings.entrySet()) {
+                if(entry.getValue().type==Binding.NameType.LABEL){
+
+                }
+                putBinding(entry.getKey(), entry.getValue());
+            }
+            tempBindings.clear();
 
             {
                 int firstFail;
@@ -399,19 +400,30 @@ public final class ProgramCompiler {
         ArrayList<Position> pos=new ArrayList<>();
         ArrayList<Boolean> bools=new ArrayList<>();
         ArrayList<String> args=new ArrayList<>();
+        Position current=positions.get(currentLine);
+        String prevFile=current.file;
         for(int i=0;i<list.size();i++){
-            pos.add(new Position(i,file));
+            pos.add(new Position(i,prevFile+file+'\t'));
             bools.add(false);
             args.add(null);
         }
-        pos.add(new Position(-1,file));
-        bools.add(true);
-        args.add(null);
-        list.add('\0'+file);
         positions.addAll(nextLine,pos);
         processedLines.addAll(nextLine,bools);
         lines.addAll(nextLine,list);
         argHolder.addAll(nextLine,args);
+    }
+    public void exit(){
+        Position pos = positions.get(currentLine);
+        String file = pos.file;
+        processedLines.set(currentLine, true);
+        for (currentLine++; currentLine < lines.size(); currentLine++) {
+            if (positions.get(currentLine).file.contains(file)) {
+                processedLines.set(currentLine, true);
+            } else {
+                currentLine--;
+                break;
+            }
+        }
     }
     //endregion
 
@@ -564,17 +576,34 @@ public final class ProgramCompiler {
     //endregion
 
     //region constants
-    public boolean putConstant(int constant) throws InvalidOrigin,InvalidMemoryAllocation{
+    public boolean putConstant(int constant) throws InvalidOrigin,InvalidMemoryAllocation,InvalidBinding{
         if(currentSegment==Segment.DSEG){
             throw new InvalidMemoryAllocation("Cannot store constants in volatile memory! "+constant);
         }
         int segment=currentSegment.ordinal();//todo add labeling from labels to assign, todo add temp binding
         if(currentSegment==Segment.CSEG){
-            constants[segment].put(constants[segment].size(),constant);
+            int origin=constants[segment].size();
+            try {
+                for (String s : labelsOrPointersToAssign) {
+                    putBinding(tempBindings,s,new Binding(Binding.NameType.POINTER,origin));
+                }
+            }finally {
+                labelsOrPointersToAssign.clear();
+            }
+            constantRanges[segment].set(origin);
+            constants[segment].put(origin,constant);
             return true;
         }
         if(getCurrentOverlap() || isCurrentMemoryCellFree()){
             int origin=getCurrentOrigin();
+            int offset=getCurrentSegmentOffset();
+            try {
+                for (String s : labelsOrPointersToAssign) {
+                    putBinding(s,new Binding(Binding.NameType.POINTER,offset+origin));
+                }
+            }finally {
+                labelsOrPointersToAssign.clear();
+            }
             constantRanges[segment].set(origin);
             constants[segment].put(origin,constant);
             offsetCurrentOrigin(1);
@@ -582,17 +611,34 @@ public final class ProgramCompiler {
         }
         return false;
     }
-    public boolean putConstant(float constant) throws InvalidOrigin,InvalidMemoryAllocation{
+    public boolean putConstant(float constant) throws InvalidOrigin,InvalidMemoryAllocation,InvalidBinding{
         if(currentSegment==Segment.DSEG){
             throw new InvalidMemoryAllocation("Cannot store constants in volatile memory! "+constant);
         }
         int segment=currentSegment.ordinal();
         if(currentSegment==Segment.CSEG){
-            constants[segment].put(constants[segment].size(),Float.floatToIntBits(constant));
+            int origin=constants[segment].size();
+            try {
+                for (String s : labelsOrPointersToAssign) {
+                    putBinding(tempBindings,s,new Binding(Binding.NameType.POINTER,origin));
+                }
+            }finally {
+                labelsOrPointersToAssign.clear();
+            }
+            constantRanges[segment].set(origin);
+            constants[segment].put(origin,Float.floatToIntBits(constant));
             return true;
         }
         if(getCurrentOverlap() || isCurrentMemoryCellFree()){
             int origin=getCurrentOrigin();
+            int offset=getCurrentSegmentOffset();
+            try {
+                for (String s : labelsOrPointersToAssign) {
+                    putBinding(s,new Binding(Binding.NameType.POINTER,offset+origin));
+                }
+            }finally {
+                labelsOrPointersToAssign.clear();
+            }
             constantRanges[segment].set(origin);
             constants[segment].put(origin,Float.floatToIntBits(constant));
             offsetCurrentOrigin(1);
@@ -600,19 +646,35 @@ public final class ProgramCompiler {
         }
         return false;
     }
-    public boolean putConstant(long constant) throws InvalidOrigin,InvalidMemoryAccess,InvalidMemoryAllocation{
+    public boolean putConstant(long constant) throws InvalidOrigin,InvalidMemoryAccess,InvalidMemoryAllocation,InvalidBinding {
         if(currentSegment==Segment.DSEG){
             throw new InvalidMemoryAllocation("Cannot store constants in volatile memory! "+constant);
         }
         int segment=currentSegment.ordinal();
         if(currentSegment==Segment.CSEG){
             int origin=constants[segment].size();
+            try {
+                for (String s : labelsOrPointersToAssign) {
+                    putBinding(tempBindings,s,new Binding(Binding.NameType.POINTER,origin));
+                }
+            }finally {
+                labelsOrPointersToAssign.clear();
+            }
+            constantRanges[segment].set(origin,origin+2);
             constants[segment].put(origin,(int)constant);
             constants[segment].put(origin+1,(int)(constant>>32));
             return true;
         }
         if(getCurrentOverlap() || isCurrentMemoryBlockFree(2)){
             int origin=getCurrentOrigin();
+            int offset=getCurrentSegmentOffset();
+            try {
+                for (String s : labelsOrPointersToAssign) {
+                    putBinding(s,new Binding(Binding.NameType.POINTER,offset+origin));
+                }
+            }finally {
+                labelsOrPointersToAssign.clear();
+            }
             constantRanges[segment].set(origin,origin+2);
             constants[segment].put(origin,(int)constant);
             constants[segment].put(origin+1,(int)(constant>>32));
@@ -621,7 +683,7 @@ public final class ProgramCompiler {
         }
         return false;
     }
-    public boolean putConstant(String constant) throws InvalidOrigin,InvalidMemoryAccess,InvalidMemoryAllocation,InvalidConstant {
+    public boolean putConstant(String constant) throws InvalidOrigin,InvalidMemoryAccess,InvalidMemoryAllocation,InvalidConstant,InvalidBinding {
         if(currentSegment==Segment.DSEG){
             throw new InvalidMemoryAllocation("Cannot store constants in volatile memory! "+constant);
         }
@@ -632,16 +694,32 @@ public final class ProgramCompiler {
             throw new InvalidConstant("String constant must not be empty!");
         }
         int segment=currentSegment.ordinal();
+        int length=constant.length();
         if(currentSegment==Segment.CSEG){
             int origin=constants[segment].size();
+            try {
+                for (String s : labelsOrPointersToAssign) {
+                    putBinding(tempBindings,s,new Binding(Binding.NameType.POINTER,origin));
+                }
+            }finally {
+                labelsOrPointersToAssign.clear();
+            }
+            constantRanges[segment].set(origin,origin+length);
             for(int i=0;i<constant.length();i++){
                 constants[segment].put(origin+i,(int)constant.charAt(i));
             }
             return true;
         }
-        int length=constant.length();
         if(getCurrentOverlap() || isCurrentMemoryBlockFree(length)){
             int origin=getCurrentOrigin();
+            int offset=getCurrentSegmentOffset();
+            try {
+                for (String s : labelsOrPointersToAssign) {
+                    putBinding(s,new Binding(Binding.NameType.POINTER,offset+origin));
+                }
+            }finally {
+                labelsOrPointersToAssign.clear();
+            }
             constantRanges[segment].set(origin,origin+length);
             for(int i=0;i<constant.length();i++){
                 constants[segment].put(origin+i,(int)constant.charAt(i));
@@ -651,7 +729,7 @@ public final class ProgramCompiler {
         }
         return false;
     }
-    public boolean reserveMemory(int cellCount) throws InvalidOrigin,InvalidMemoryAccess,InvalidMemoryAllocation {
+    public boolean reserveMemory(int cellCount) throws InvalidOrigin,InvalidMemoryAccess,InvalidMemoryAllocation,InvalidBinding {
         if(currentSegment==Segment.CSEG){
             throw new InvalidMemoryAllocation("Cannot store variables in program memory! "+cellCount);
         }
@@ -661,6 +739,15 @@ public final class ProgramCompiler {
         if(getCurrentOverlap() || isCurrentMemoryBlockFree(cellCount)){
             int segment=currentSegment.ordinal();
             int origin=getCurrentOrigin();
+            int offset=getCurrentSegmentOffset();
+            try {
+                for (String s : labelsOrPointersToAssign) {
+                    putBinding(s,new Binding(Binding.NameType.POINTER,offset+origin));
+                }
+            }finally {
+                labelsOrPointersToAssign.clear();
+            }
+
             constantRanges[segment].set(origin,origin+cellCount);
             for(int i=0;i<cellCount;i++){
                 constants[segment].put(origin+i,0);

@@ -359,7 +359,7 @@ public abstract class Directive implements IDirective {
         DEFINED_DIRECTIVES.put("EXIT", new Directive() {
             @Override
             public String process(ProgramCompiler compiler, String args) throws CompilerException {
-                throw new ExitDirective(args);
+                compiler.exit();
             }
         });
     }
