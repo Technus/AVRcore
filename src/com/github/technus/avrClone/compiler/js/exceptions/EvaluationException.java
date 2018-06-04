@@ -1,4 +1,6 @@
-package com.github.technus.avrClone.compiler.exceptions;
+package com.github.technus.avrClone.compiler.js.exceptions;
+
+import com.github.technus.avrClone.compiler.exceptions.CompilerException;
 
 public class EvaluationException extends CompilerException {
     public EvaluationException(String s,Throwable c){

@@ -2,32 +2,27 @@ package com.github.technus.avrClone.compiler.directives;
 
 import com.github.technus.avrClone.compiler.Binding;
 import com.github.technus.avrClone.compiler.ConditionalState;
+import com.github.technus.avrClone.compiler.Line;
 import com.github.technus.avrClone.compiler.ProgramCompiler;
+import com.github.technus.avrClone.compiler.directives.exceptions.InvalidDirective;
 import com.github.technus.avrClone.compiler.exceptions.CompilerException;
-import com.github.technus.avrClone.compiler.exceptions.EvaluationException;
+import com.github.technus.avrClone.compiler.js.exceptions.EvaluationException;
 
-import static com.github.technus.avrClone.compiler.LineConsumer.splitExpressionsString;
 import static com.github.technus.avrClone.compiler.ListingMode.*;
 import static com.github.technus.avrClone.compiler.Segment.*;
 
 public abstract class Directive implements IDirective {
-    private final boolean unskippable, repeatable, onlyFirst;
+    private final boolean unskippable, repeatable, onlyFirst, cannotFail;
 
-    public Directive(boolean unskippable) {
-        this.unskippable = onlyFirst = unskippable;
-        repeatable = false;
-    }
-
-    public Directive(boolean unskippable, boolean repeatable) {
+    public Directive(boolean unskippable, boolean repeatable, boolean onlyFirst, boolean canotFail) {
         this.unskippable = unskippable;
         this.repeatable = repeatable;
-        onlyFirst = false;
+        this.onlyFirst = onlyFirst;
+        this.cannotFail = canotFail;
     }
 
-    public Directive() {
-        unskippable = repeatable = false;
-        onlyFirst = true;
-    }
+    @Override
+    public void offsetOriginIfProcessed(ProgramCompiler compiler, Line line) throws CompilerException {}
 
     @Override
     public boolean isRepeatable() {
@@ -40,326 +35,330 @@ public abstract class Directive implements IDirective {
     }
 
     @Override
-    public boolean isOnlyFirstPass() {
+    public boolean onlyFirstPass() {
         return onlyFirst;
     }
 
+    @Override
+    public boolean cannotFail() {
+        return cannotFail;
+    }
+
     public static void makeDirectives() {
-        DEFINED_DIRECTIVES.put("OVERLAP", new Directive(false, true) {
+        GLOBAL_DIRECTIVES.put("OVERLAP", new Directive(false, true, false, true) {
             @Override
-            public String process(ProgramCompiler compiler, String args) throws CompilerException {
+            public void process(ProgramCompiler compiler, Line line) throws CompilerException {
                 compiler.setCurrentOverlap(true);
-                return null;
             }
         });
-        DEFINED_DIRECTIVES.put("NOOVERLAP", new Directive(false, true) {
+        GLOBAL_DIRECTIVES.put("NOOVERLAP", new Directive(false, true, false, true) {
             @Override
-            public String process(ProgramCompiler compiler, String args) throws CompilerException {
+            public void process(ProgramCompiler compiler, Line line) throws CompilerException {
                 compiler.setCurrentOverlap(false);
-                return null;
             }
         });
 
-        DEFINED_DIRECTIVES.put("CSEG", new Directive(false, true) {
+        GLOBAL_DIRECTIVES.put("CSEG", new Directive(false, true, false, true) {
             @Override
-            public String process(ProgramCompiler compiler, String args) throws CompilerException {
+            public void process(ProgramCompiler compiler, Line line) throws CompilerException {
                 compiler.setCurrentSegment(CSEG);
-                return null;
             }
         });
-        DEFINED_DIRECTIVES.put("DSEG", new Directive(false, true) {
+        GLOBAL_DIRECTIVES.put("DSEG", new Directive(false, true, false, true) {
             @Override
-            public String process(ProgramCompiler compiler, String args) throws CompilerException {
+            public void process(ProgramCompiler compiler, Line line) throws CompilerException {
                 compiler.setCurrentSegment(DSEG);
-                return null;
             }
         });
-        DEFINED_DIRECTIVES.put("ESEG", new Directive(false, true) {
+        GLOBAL_DIRECTIVES.put("ESEG", new Directive(false, true, false, true) {
             @Override
-            public String process(ProgramCompiler compiler, String args) throws CompilerException {
+            public void process(ProgramCompiler compiler, Line line) throws CompilerException {
                 compiler.setCurrentSegment(ESEG);
-                return null;
             }
         });
 
-        DEFINED_DIRECTIVES.put("ORG", new Directive(false, true) {
+        GLOBAL_DIRECTIVES.put("ORG", new Directive(false, false, true, true) {
             @Override
-            public String process(ProgramCompiler compiler, String args) throws CompilerException {
-                int value = compiler.computeValue(args).intValue();
+            public void process(ProgramCompiler compiler, Line line) throws CompilerException {
+                int value = compiler.computeNumber(line.getLatestArguments()).intValue();
                 compiler.setCurrentOrigin(value);
-                return Integer.toString(value);
+                line.setEvaluatedArguments(Integer.toString(value));
             }
         });
 
         //malloc
-        DEFINED_DIRECTIVES.put("INT", new Directive(false) {
+        GLOBAL_DIRECTIVES.put("INT", new Directive(false, false, true, true) {
             @Override
-            public String process(ProgramCompiler compiler, String args) throws CompilerException {
-                compiler.reserveMemory(compiler.computeValue(args).intValue());
-                return null;
+            public void process(ProgramCompiler compiler, Line line) throws CompilerException {
+                compiler.reserveMemory(compiler.computeNumber(line.getLatestArguments()).intValue());
+            }
 
+            @Override
+            public void offsetOriginIfProcessed(ProgramCompiler compiler, Line line) throws CompilerException{
+                compiler.offsetCurrentOrigin(1);
             }
         });
-        DEFINED_DIRECTIVES.put("FLOAT", new Directive(false) {
+        GLOBAL_DIRECTIVES.put("FLOAT", new Directive(false, false, true, true) {
             @Override
-            public String process(ProgramCompiler compiler, String args) throws CompilerException {
-                compiler.reserveMemory(compiler.computeValue(args).intValue());
-                return null;
+            public void process(ProgramCompiler compiler, Line line) throws CompilerException {
+                compiler.reserveMemory(compiler.computeNumber(line.getLatestArguments()).intValue());
+            }
+
+            @Override
+            public void offsetOriginIfProcessed(ProgramCompiler compiler, Line line) throws CompilerException{
+                compiler.offsetCurrentOrigin(1);
             }
         });
-        DEFINED_DIRECTIVES.put("LONG", new Directive(false) {
+        GLOBAL_DIRECTIVES.put("LONG", new Directive(false, false, true, true) {
             @Override
-            public String process(ProgramCompiler compiler, String args) throws CompilerException {
-                compiler.reserveMemory(compiler.computeValue(args).intValue() * 2);
-                return null;
+            public void process(ProgramCompiler compiler, Line line) throws CompilerException {
+                compiler.reserveMemory(compiler.computeNumber(line.getLatestArguments()).intValue() * 2);
+            }
+
+            @Override
+            public void offsetOriginIfProcessed(ProgramCompiler compiler, Line line) throws CompilerException{
+                compiler.offsetCurrentOrigin(2);
             }
         });
 
         //consts
-        DEFINED_DIRECTIVES.put("STRING", new Directive(false) {
+        GLOBAL_DIRECTIVES.put("STRING", new Directive(false, false, true, true) {
             @Override
-            public String process(ProgramCompiler compiler, String args) throws CompilerException {
-                compiler.putConstant(compiler.computeString(args));
-                return null;
+            public void process(ProgramCompiler compiler, Line line) throws CompilerException {
+                if(line.getEvaluatedArguments()==null){
+                    line.setEvaluatedArguments(compiler.computeString(line.getLatestArguments()));
+                }
+                compiler.putConstant(line.getLatestArguments());
+            }
+
+            @Override
+            public void offsetOriginIfProcessed(ProgramCompiler compiler, Line line) throws CompilerException{
+                compiler.offsetCurrentOrigin(line.getLatestArguments().length());
             }
         });
-        DEFINED_DIRECTIVES.put("DINT", new Directive(false) {
+        GLOBAL_DIRECTIVES.put("DINT", new Directive(false, false, true, true) {
             @Override
-            public String process(ProgramCompiler compiler, String args) throws CompilerException {
-                String[] arg = splitExpressionsString(args);
-                for (String anArg : arg) {
-                    compiler.putConstant(compiler.computeValue(anArg).intValue());
+            public void process(ProgramCompiler compiler, Line line) throws CompilerException {
+                for (String anArg : line.getLatestArgumentArray()) {
+                    compiler.putConstant(compiler.computeNumber(anArg).intValue());
                 }
-                return null;
+            }
+
+            @Override
+            public void offsetOriginIfProcessed(ProgramCompiler compiler, Line line) throws CompilerException{
+                compiler.offsetCurrentOrigin(line.getLatestArgumentArray().length);
             }
         });
-        DEFINED_DIRECTIVES.put("DLONG", new Directive(false) {
+        GLOBAL_DIRECTIVES.put("DLONG", new Directive(false, false, true, true) {
             @Override
-            public String process(ProgramCompiler compiler, String args) throws CompilerException {
-                String[] arg = splitExpressionsString(args);
-                for (String anArg : arg) {
-                    compiler.putConstant(compiler.computeValue(anArg).longValue());
+            public void process(ProgramCompiler compiler, Line line) throws CompilerException {
+                for (String anArg : line.getLatestArgumentArray()) {
+                    compiler.putConstant(compiler.computeNumber(anArg).longValue());
                 }
-                return null;
+            }
+
+            @Override
+            public void offsetOriginIfProcessed(ProgramCompiler compiler, Line line) throws CompilerException{
+                compiler.offsetCurrentOrigin(line.getLatestArgumentArray().length*2);
             }
         });
-        DEFINED_DIRECTIVES.put("DFLOAT", new Directive(false) {
+        GLOBAL_DIRECTIVES.put("DFLOAT", new Directive(false, false, true, true) {
             @Override
-            public String process(ProgramCompiler compiler, String args) throws CompilerException {
-                String[] arg = splitExpressionsString(args);
+            public void process(ProgramCompiler compiler, Line line) throws CompilerException {
+                String[] arg = line.getLatestArgumentArray();
                 for (String anArg : arg) {
-                    compiler.putConstant(compiler.computeValue(anArg).floatValue());
+                    compiler.putConstant(compiler.computeNumber(anArg).floatValue());
                 }
-                return null;
+            }
+
+            @Override
+            public void offsetOriginIfProcessed(ProgramCompiler compiler, Line line) throws CompilerException{
+                compiler.offsetCurrentOrigin(line.getLatestArgumentArray().length);
             }
         });
 
-        DEFINED_DIRECTIVES.put("MESSAGE", new Directive(false) {
+        GLOBAL_DIRECTIVES.put("MESSAGE", new Directive(false, false, false, false) {
             @Override
-            public String process(ProgramCompiler compiler, String args) throws CompilerException {
-                compiler.write(compiler.computeString(args));
-                return null;
+            public void process(ProgramCompiler compiler, Line line) throws CompilerException {
+                compiler.write(compiler.computeString(line.getLatestArguments()));
             }
         });
-        DEFINED_DIRECTIVES.put("WARNING", new Directive(false) {
+        GLOBAL_DIRECTIVES.put("WARNING", new Directive(false, false, false, false) {
             @Override
-            public String process(ProgramCompiler compiler, String args) throws CompilerException {
-                compiler.writeError("WARNING: " + compiler.computeString(args));
-                return null;
+            public void process(ProgramCompiler compiler, Line line) throws CompilerException {
+                compiler.writeError("WARNING: " + compiler.computeString(line.getLatestArguments()));
             }
         });
-        DEFINED_DIRECTIVES.put("ERROR", new Directive(false) {
+        GLOBAL_DIRECTIVES.put("ERROR", new Directive(false, false, false, false) {
             @Override
-            public String process(ProgramCompiler compiler, String args) throws CompilerException {
-                compiler.writeError("ERROR: " + compiler.computeString(args));
-                return null;
+            public void process(ProgramCompiler compiler, Line line) throws CompilerException {
+                compiler.writeError("ERROR: " + compiler.computeString(line.getLatestArguments()));
             }
         });
 
-        DEFINED_DIRECTIVES.put("EQU", new Directive(false) {
+        GLOBAL_DIRECTIVES.put("EQU", new Directive(false, false, false, false) {
             @Override
-            public String process(ProgramCompiler compiler, String args) throws CompilerException {
-                String[] argArr = args.replaceFirst("=", "\0").split("\\x00");
+            public void process(ProgramCompiler compiler, Line line) throws CompilerException {
+                String[] argArr = line.getLatestArguments().replaceFirst(" *= *", "\0").split("\\x00");
                 if (argArr.length != 2) {
-                    throw new InvalidDirective("Malformed directive! " + args);
+                    throw new InvalidDirective("Malformed directive! " + line.getLatestArguments());
                 }
-                compiler.putBinding(argArr[0], new Binding(Binding.NameType.EQU, compiler.computeValue(argArr[1])));
-                return null;
+                compiler.putBinding(argArr[0], new Binding(Binding.NameType.EQU, compiler.computeNumber(argArr[1])));
             }
         });
-        DEFINED_DIRECTIVES.put("SET", new Directive(false, true) {
+        GLOBAL_DIRECTIVES.put("SET", new Directive(false, true, false, false) {
             @Override
-            public String process(ProgramCompiler compiler, String args) throws CompilerException {
-                String[] argArr = args.replaceFirst("=", "\0").split("\\x00");
+            public void process(ProgramCompiler compiler, Line line) throws CompilerException {
+                String[] argArr = line.getLatestArguments().replaceFirst(" *= *", "\0").split("\\x00");
                 if (argArr.length != 2) {
-                    throw new InvalidDirective("Malformed directive! " + args);
+                    throw new InvalidDirective("Malformed directive! " + line.getLatestArguments());
                 }
-                Number no = compiler.computeValue(argArr[1]);
+                Number no = compiler.computeNumber(argArr[1]);
                 compiler.putBinding(argArr[0], new Binding(Binding.NameType.SET, no));
-                return no.toString();
+                line.setEvaluatedArguments(argArr[0]+'='+no.toString());
             }
         });
-        DEFINED_DIRECTIVES.put("DEF", new Directive(false, true) {
+        GLOBAL_DIRECTIVES.put("DEF", new Directive(false, true, false, false) {
             @Override
-            public String process(ProgramCompiler compiler, String args) throws CompilerException {
-                String[] argArr = args.replaceFirst("=", "\0").split("\\x00");
+            public void process(ProgramCompiler compiler, Line line) throws CompilerException {
+                String[] argArr = line.getLatestArguments().replaceFirst(" *= *", "\0").split("\\x00");
                 if (argArr.length != 2) {
-                    throw new InvalidDirective("Malformed directive! " + args);
+                    throw new InvalidDirective("Malformed directive! " + line.getLatestArguments());
                 }
-                Number no = compiler.computeValue(argArr[1]);
-                compiler.putBinding(argArr[0], new Binding(Binding.NameType.DEF, compiler.computeValue(argArr[1])));
-                return no.toString();
+                Number no = compiler.computeNumber(argArr[1]);
+                compiler.putBinding(argArr[0], new Binding(Binding.NameType.DEF, no));
+                line.setEvaluatedArguments(argArr[0]+'='+no.toString());
             }
         });
-        DEFINED_DIRECTIVES.put("UNDEF", new Directive(false, true) {
+        GLOBAL_DIRECTIVES.put("UNDEF", new Directive(false, true, false, false) {
             @Override
-            public String process(ProgramCompiler compiler, String args) throws CompilerException {
-                String[] defs = splitExpressionsString(args);
-                for (String def : defs) {
+            public void process(ProgramCompiler compiler, Line line) throws CompilerException {
+                for (String def : line.getLatestArgumentArray()) {
                     compiler.removeBinding(def);
                 }
-                return args;
             }
         });
 
-        DEFINED_DIRECTIVES.put("MACRO", new Directive() {
+        GLOBAL_DIRECTIVES.put("MACRO", new Directive(false, false, true, true) {
             @Override
-            public String process(ProgramCompiler compiler, String args) throws CompilerException {
-                String[] arg = splitExpressionsString(args);
-                for (String name : arg) {
+            public void process(ProgramCompiler compiler, Line line) throws CompilerException {
+                for (String name : line.getLatestArgumentArray()) {
                     compiler.addMacro(name);
                 }
-                return null;
             }
         });
-        DEFINED_DIRECTIVES.put("ENDMACRO", new Directive() {
+        GLOBAL_DIRECTIVES.put("ENDMACRO", new Directive(false, false, true, true) {
             @Override
-            public String process(ProgramCompiler compiler, String args) throws CompilerException {
-                String[] arg = splitExpressionsString(args);
-                for (String name : arg) {
+            public void process(ProgramCompiler compiler, Line line) throws CompilerException {
+                for (String name : line.getLatestArgumentArray()) {
                     compiler.finishMacro(name);
                 }
-                return null;
             }
         });
-        DEFINED_DIRECTIVES.put("ENDM", new Directive() {
+        GLOBAL_DIRECTIVES.put("ENDM", new Directive(false, false, true, true) {
             @Override
-            public String process(ProgramCompiler compiler, String args) throws CompilerException {
-                String[] arg = splitExpressionsString(args);
-                for (String name : arg) {
+            public void process(ProgramCompiler compiler, Line line) throws CompilerException {
+                for (String name : line.getLatestArgumentArray()) {
                     compiler.finishMacro(name);
                 }
-                return null;
             }
         });
 
-        DEFINED_DIRECTIVES.put("IF", new Directive(true) {
+        GLOBAL_DIRECTIVES.put("IF", new Directive(true, false, true, true) {
             @Override
-            public String process(ProgramCompiler compiler, String args) throws CompilerException {
+            public void process(ProgramCompiler compiler, Line line) throws CompilerException {
                 try {
-                    compiler.openIf(compiler.computeBoolean(args));
+                    compiler.openIf(compiler.computeBoolean(line.getLatestArguments()));
                 } catch (EvaluationException e) {
                     compiler.openIf(false);
                     compiler.setConditionalState(ConditionalState.DISABLED);
                     throw e;
                 }
-                return null;
             }
         });
-        DEFINED_DIRECTIVES.put("IFDEF", new Directive(true) {
+        GLOBAL_DIRECTIVES.put("IFDEF", new Directive(true, false, true, true) {
             @Override
-            public String process(ProgramCompiler compiler, String args) throws CompilerException {
+            public void process(ProgramCompiler compiler, Line line) throws CompilerException {
                 //all def
-                compiler.openIf(compiler.containsNotDefs(splitExpressionsString(args)));
-                return null;
+                compiler.openIf(compiler.containsNotDefs(line.getLatestArgumentArray()));
             }
         });
-        DEFINED_DIRECTIVES.put("IFNDEF", new Directive(true) {
+        GLOBAL_DIRECTIVES.put("IFNDEF", new Directive(true, false, true, true) {
             @Override
-            public String process(ProgramCompiler compiler, String args) throws CompilerException {
+            public void process(ProgramCompiler compiler, Line line) throws CompilerException {
                 //all undef
-                compiler.openIf(compiler.lacksNotDefs(splitExpressionsString(args)));
-                return null;
+                compiler.openIf(compiler.lacksNotDefs(line.getLatestArgumentArray()));
             }
         });
-        DEFINED_DIRECTIVES.put("ENDIF", new Directive(true) {
+        GLOBAL_DIRECTIVES.put("ENDIF", new Directive(true, false, true, true) {
             @Override
-            public String process(ProgramCompiler compiler, String args) throws CompilerException {
+            public void process(ProgramCompiler compiler, Line line) throws CompilerException {
                 compiler.endIf();
-                return null;
             }
         });
 
-        DEFINED_DIRECTIVES.put("ELIF", new Directive(true) {
+        GLOBAL_DIRECTIVES.put("ELIF", new Directive(true, false, true, true) {
             @Override
-            public String process(ProgramCompiler compiler, String args) throws CompilerException {
+            public void process(ProgramCompiler compiler, Line line) throws CompilerException {
                 try {
-                    compiler.elseIf(compiler.computeBoolean(args));
+                    compiler.elseIf(compiler.computeBoolean(line.getLatestArguments()));
                 } catch (EvaluationException e) {
                     compiler.setConditionalState(ConditionalState.DISABLED);
                     throw e;
                 }
-                return null;
             }
         });
-        DEFINED_DIRECTIVES.put("ELDEF", new Directive(true) {
+        GLOBAL_DIRECTIVES.put("ELDEF", new Directive(true, false, true, true) {
             @Override
-            public String process(ProgramCompiler compiler, String args) throws CompilerException {
+            public void process(ProgramCompiler compiler, Line line) throws CompilerException {
                 //all def
-                compiler.elseIf(compiler.containsNotDefs(splitExpressionsString(args)));
-                return null;
+                compiler.elseIf(compiler.containsNotDefs(line.getLatestArgumentArray()));
             }
         });
-        DEFINED_DIRECTIVES.put("ELNDEF", new Directive(true) {
+        GLOBAL_DIRECTIVES.put("ELNDEF", new Directive(true, false, true, true) {
             @Override
-            public String process(ProgramCompiler compiler, String args) throws CompilerException {
+            public void process(ProgramCompiler compiler, Line line) throws CompilerException {
                 //all undef
-                compiler.elseIf(compiler.lacksNotDefs(splitExpressionsString(args)));
-                return null;
+                compiler.elseIf(compiler.lacksNotDefs(line.getLatestArgumentArray()));
             }
         });
-        DEFINED_DIRECTIVES.put("ELSE", new Directive(true) {
+        GLOBAL_DIRECTIVES.put("ELSE", new Directive(true, false, true, true) {
             @Override
-            public String process(ProgramCompiler compiler, String args) throws CompilerException {
+            public void process(ProgramCompiler compiler, Line line) throws CompilerException {
                 compiler.elseIf(true);
-                return null;
             }
         });
 
-        DEFINED_DIRECTIVES.put("NOLIST", new Directive(false, true) {
+        GLOBAL_DIRECTIVES.put("NOLIST", new Directive(false, true, false, true) {
             @Override
-            public String process(ProgramCompiler compiler, String args) throws CompilerException {
-                compiler.setListing(NO_LIST);
-                return null;
+            public void process(ProgramCompiler compiler, Line line) throws CompilerException {
+                compiler.setCurrentListing(NO_LIST);
             }
         });
-        DEFINED_DIRECTIVES.put("LIST", new Directive(false, true) {
+        GLOBAL_DIRECTIVES.put("LIST", new Directive(false, true, false, true) {
             @Override
-            public String process(ProgramCompiler compiler, String args) throws CompilerException {
-                compiler.setListing(LIST);
-                return null;
+            public void process(ProgramCompiler compiler, Line line) throws CompilerException {
+                compiler.setCurrentListing(LIST);
             }
         });
-        DEFINED_DIRECTIVES.put("LISTMAC", new Directive(false, true) {
+        GLOBAL_DIRECTIVES.put("LISTMAC", new Directive(false, true, false, true) {
             @Override
-            public String process(ProgramCompiler compiler, String args) throws CompilerException {
-                compiler.setListing(LIST_MACRO);
-                return null;
+            public void process(ProgramCompiler compiler, Line line) throws CompilerException {
+                compiler.setCurrentListing(LIST_MACRO);
             }
         });
 
-        DEFINED_DIRECTIVES.put("INCLUDE", new Directive() {
+        GLOBAL_DIRECTIVES.put("INCLUDE", new Directive(false, false, true, true) {
             @Override
-            public String process(ProgramCompiler compiler, String args) throws CompilerException {
-                compiler.include(args);
-                return null;
+            public void process(ProgramCompiler compiler, Line line) throws CompilerException {
+                compiler.include(line.getLatestArguments());
             }
         });
 
-        DEFINED_DIRECTIVES.put("EXIT", new Directive() {
+        GLOBAL_DIRECTIVES.put("EXIT", new Directive(false, false, true, true) {
             @Override
-            public String process(ProgramCompiler compiler, String args) throws CompilerException {
-                compiler.exit();
+            public void process(ProgramCompiler compiler, Line line) throws CompilerException {
+                compiler.exitCurrentFile();
             }
         });
     }

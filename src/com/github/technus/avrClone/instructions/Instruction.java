@@ -2363,6 +2363,7 @@ public abstract class Instruction implements I_Instruction {
         return immersive;
     }
 
+
     /**
      * Default compileInstruction implementation. works well for 2x Register number
      *
@@ -2376,27 +2377,33 @@ public abstract class Instruction implements I_Instruction {
      */
     @Override
     public void compileInstruction(AvrCore core, ProgramMemory programMemory, int address, boolean immersive, int[] operandsReturn, String[] values) throws ProgramException {
-        int temp=0;
+        Number temp=0;
         InvalidOperand0 err0=null;
-        if (values.length > 1) {
+        if (values.length >0) {
             if(limit0 == null){
                 err0 = new InvalidOperand0("Does not require operand 0");
             }
             if(err0==null) {
                 try {
-                    temp=(int)ProgramCompiler.parseNumberAdvanced(values[1]);
+                    temp=ProgramCompiler.parseNumberAdvanced(values[0]);
+                    if(limit0.isRelativePreffered()){
+                        temp=temp.doubleValue()-address;
+                    }
+                    if(limit0.isFloatingPointPreffered()){
+                        temp=Float.floatToIntBits(temp.floatValue());
+                    }
                 } catch (Exception e) {
-                    err0 = new InvalidOperand0("Cannot Parse " + values[1]);
+                    err0 = new InvalidOperand0("Cannot Parse " + values[0]);
                 }
                 if (err0 == null) {
-                    operandsReturn[0] = limit0.clamp(temp, address, immersive);
-                    if (temp != operandsReturn[0]) {
+                    operandsReturn[0] = limit0.clamp(temp.intValue(), address, immersive);
+                    if (temp.intValue() != operandsReturn[0]) {
                         err0 = new InvalidOperand0("Out of range " + temp + " clamped to: " + operandsReturn[0]);
                     }
                 }
             }
         }
-        if (values.length > 2) {
+        if (values.length > 1) {
             if(limit1 == null){
                 if(err0==null){
                     throw new InvalidOperand1("Instruction " +name+ " At line "+address+" Does not require operand 1");
@@ -2405,16 +2412,22 @@ public abstract class Instruction implements I_Instruction {
                 }
             }
             try {
-                temp=(int)ProgramCompiler.parseNumberAdvanced(values[2]);
+                temp=ProgramCompiler.parseNumberAdvanced(values[1]);
+                if(limit1.isRelativePreffered()){
+                    temp=temp.doubleValue()-address;
+                }
+                if(limit1.isFloatingPointPreffered()){
+                    temp=Float.floatToIntBits(temp.floatValue());
+                }
             }catch (Exception e){
                 if(err0==null){
-                    throw new InvalidOperand1("Instruction " +name+ " At line "+address+" Cannot Parse "+values[2]);
+                    throw new InvalidOperand1("Instruction " +name+ " At line "+address+" Cannot Parse "+values[1]);
                 }else {
-                    throw new InvalidOperands("Instruction " +name+ " At line "+address+"    OP0: "+err0.getMessage()+"    OP1: Cannot Parse "+values[2]);
+                    throw new InvalidOperands("Instruction " +name+ " At line "+address+"    OP0: "+err0.getMessage()+"    OP1: Cannot Parse "+values[1]);
                 }
             }
-            operandsReturn[1] = limit1.clamp(temp, address, immersive);
-            if(temp!=operandsReturn[1]){
+            operandsReturn[1] = limit1.clamp(temp.intValue(), address, immersive);
+            if(temp.intValue()!=operandsReturn[1]){
                 if(err0==null){
                     throw new InvalidOperand1("Instruction " +name+ " At line "+address+" Out of range "+temp+" clamped to: "+operandsReturn[1]);
                 }else {

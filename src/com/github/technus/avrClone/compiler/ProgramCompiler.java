@@ -1,13 +1,13 @@
 package com.github.technus.avrClone.compiler;
 
-import com.github.technus.avrClone.compiler.directives.ExitDirective;
 import com.github.technus.avrClone.compiler.directives.IDirective;
 import com.github.technus.avrClone.compiler.directives.Directive;
-import com.github.technus.avrClone.compiler.directives.InvalidDirective;
+import com.github.technus.avrClone.compiler.directives.exceptions.InvalidDirective;
 import com.github.technus.avrClone.compiler.exceptions.*;
-import com.github.technus.avrClone.compiler.js.CompilerBindings;
-import com.github.technus.avrClone.compiler.js.CompilerContext;
-import javafx.geometry.Pos;
+import com.github.technus.avrClone.compiler.js.*;
+import com.github.technus.avrClone.compiler.js.exceptions.EvaluationException;
+import com.github.technus.avrClone.compiler.js.exceptions.InvalidConditionalEvaluation;
+import com.github.technus.avrClone.compiler.js.exceptions.PrintingException;
 import jdk.nashorn.api.scripting.NashornScriptEngine;
 import jdk.nashorn.api.scripting.NashornScriptEngineFactory;
 
@@ -16,9 +16,16 @@ import javax.script.SimpleBindings;
 import java.io.IOException;
 import java.util.*;
 
-import static com.github.technus.avrClone.compiler.LineConsumer.*;
+import static com.github.technus.avrClone.compiler.Line.NAME_FORMAT;
+import static com.github.technus.avrClone.compiler.Line.NAME_TERMINATOR;
+import static com.github.technus.avrClone.compiler.SourceCollection.LINE_NUMBER_SEPARATOR_CHAR;
+import static com.github.technus.avrClone.compiler.SourceCollection.MACRO_SEPARATOR_CHAR;
 
-public final class ProgramCompiler {
+public class ProgramCompiler {
+    static {
+        Directive.makeDirectives();
+    }
+
     private static final String SANDBOX =
             "var eval=function(){};var uneval=function(){};" +
                     "var decodeURI=function(){};var decodeURIComponent=function(){};" +
@@ -30,79 +37,63 @@ public final class ProgramCompiler {
                     "var load=function(){};var loadWithNewGlobal=function(){};\n";
 
     //region fields
-    private ArrayList<String> mainFile;
-    private HashMap<String,ArrayList<String>> includedFiles;
+    private HashMap<String, IDirective> instanceDirectives = new HashMap<>();
+
+    public final SourceCollection sources = new SourceCollection();
 
     private int currentLine;
-    private HashSet<String> labelsOrPointersToAssign;
-    private HashMap<String,Binding> tempBindings;
-
-    private ArrayList<String> argHolder;
-    private ArrayList<String> lines;
-    private ArrayList<Position> positions;
-    private ArrayList<Boolean> processedLines;
-
-    private HashMap<Integer,Integer>[] constants;
+    private ArrayList<Line> lines;
 
     private Segment currentSegment;
+    private ListingMode currentListing;
 
-    private int[] startOffset,origins;
-
+    private int[] startOffset, origins;
     private boolean[] overlap;
+    private HashMap<Integer, Integer>[] constants;
     private BitSet[] constantRanges;
 
-    private CompilerBindings compilerBindings;
+    private CompilerBindings compilerBindings=new CompilerBindings(64);
     private CompilerContext scriptContext;
     private NashornScriptEngine scriptEngine;
 
-    private ArrayList<ConditionalState> compilationEnabled;
+    private ArrayList<ConditionalState> compilationEnabled = new ArrayList<>();
 
-    private HashMap<String,ArrayList<String>> macros;
-    private HashSet<String> editingMacros;
+    private HashMap<String, ArrayList<Line>> macros;
+    private LinkedHashSet<String> editingMacros;
 
-    private ListingMode listing;
-
-    private Includer includer;
-
-    private HashMap<String,IDirective> instanceDirectives=new HashMap<>();
-
-    private ArrayList<String> madeFile;
+    private TreeMap<Integer,String> madeFile;
     //endregion
 
-    public ProgramCompiler(){
+    public ProgramCompiler() {
         reset();
     }
 
     @SuppressWarnings("unchecked")
     private void reset() {
-        mainFile = null;
-        includedFiles = new HashMap<>(8);
+        lines = null;
 
-        currentLine=0;
-        labelsOrPointersToAssign=new HashSet<>(8);
-        tempBindings=new HashMap<>(32);
-        argHolder=new ArrayList<>(128);
-        positions=new ArrayList<>(512);
-        processedLines=new ArrayList<>(512);
-        lines=new ArrayList<>(512);
+        sources.clear();
+
+        currentLine = 0;
 
         currentSegment = Segment.CSEG;
+        currentListing = ListingMode.LIST;
 
         startOffset = new int[Segment.values().length];
         origins = new int[Segment.values().length];
 
         overlap = new boolean[Segment.values().length];
 
-        constants=new HashMap[Segment.values().length];
-        for(int i=0;i<constants.length;i++){
-            constants[i]=new HashMap<>();
+        constants = new HashMap[Segment.values().length];
+        for (int i = 0; i < constants.length; i++) {
+            constants[i] = new HashMap<>();
         }
         constantRanges = new BitSet[Segment.values().length];
         for (int i = 0; i < constantRanges.length; i++) {
             constantRanges[i] = new BitSet(4096);
         }
 
-        compilerBindings = new CompilerBindings(64);
+        //compilerBindings = new CompilerBindings(64);
         SimpleBindings globalBindings = new SimpleBindings();
         scriptContext = new CompilerContext(compilerBindings, globalBindings);
         ClassLoader ccl = Thread.currentThread().getContextClassLoader();
@@ -111,316 +102,310 @@ public final class ProgramCompiler {
                 .getScriptEngine(new String[]{"--no-java"}, ccl, s -> false);
         scriptEngine.setContext(scriptContext);
 
-        compilationEnabled = new ArrayList<>();
-        compilationEnabled.add(ConditionalState.ASSEMBLING);
+        resetConditionalState();
 
         macros = new HashMap<>();
-        editingMacros = new HashSet<>();
+        editingMacros = new LinkedHashSet<>();
 
-        listing = ListingMode.LIST;
+        madeFile = null;
+    }
 
-        madeFile=null;
+    public CompilerBindings getCompilerBindings() {
+        return compilerBindings;
+    }
+
+    public void setCompilerBindings(CompilerBindings compilerBindings) {
+        if(compilerBindings==null) {
+            this.compilerBindings=new CompilerBindings(64);
+            return;
+        }
+        this.compilerBindings = compilerBindings;
+    }
+
+    private void softReset() throws CompilerException {
+        resetConditionalState();
+        setCurrentListing(ListingMode.LIST);
+        setCurrentSegment(Segment.CSEG);
+        Segment[] segments = Segment.values();
+        for (int i = 0; i < segments.length; i++) {
+            setOrigin(0, segments[i]);
+            setOverlap(false, segments[i]);
+        }
+        compilerBindings.removeAllBindings(Binding.NameType.DEF);
     }
 
     //region input file
-    public void setInputFile(ArrayList<String> content) throws Exception{
+    public void compile(String includeName) throws Exception {
         reset();
-        if(content==null){
-            throw new CompilerException("Cannot read file!");
+
+        lines=sources.projectRootInclude(includeName, isListing());
+
+        if (lines == null) {
+            throw new CompilerException("Cannot compile null program!");
         }
-        loadMainFile(content);
-    }
-    public void setInputFile(String file) throws Exception {
-        reset();
-        if (includer == null) {
-            throw new InvalidInclude("No include processor set!");
-        }
-        ArrayList<String> lines=includer.include(file);
-        if(lines==null){
-            throw new InvalidInclude("Unable to include file! "+file);
-        }
-        loadMainFile(lines);
-    }
-    private void loadMainFile(ArrayList<String> main){
-        mainFile=sanitizeList(main);
-        lines.addAll(mainFile);
-        for(int i=0;i<lines.size();i++){
-            positions.add(new Position(i,".\\"));
-            processedLines.add(false);
-            argHolder.add(null);
-        }
-    }
-    public void writeProgram() throws Exception {
-        madeFile=null;
-        try {
-            if (mainFile == null) {
-                throw new CompilerException("No main file loaded!");
-            }
 
-            boolean didSomething;
-            Exception exception = null;
-            {
-                int firstUnskippableFail;
-                do {//all directives it can, ALL conditionals
-                    firstUnskippableFail = -1;
-                    didSomething = false;
+        boolean didSomething;
+        {
+            do {
+                if(Thread.currentThread().isInterrupted()){
+                    throw new InterruptedException("INTERUPTED!");
+                }
+                didSomething = false;
+                softReset();
 
-                    labelsOrPointersToAssign.clear();
-                    setConditionalState(ConditionalState.ASSEMBLING);
-                    setListing(ListingMode.LIST);
+                for (currentLine = 0; currentLine < lines.size(); currentLine++) {
+                    Line lineObj = lines.get(currentLine);
 
-                    for (currentLine = 0; currentLine < lines.size(); currentLine++) {
-                        if (!processedLines.get(currentLine)) {
-                            String line = lines.get(currentLine);
-                            String labelOrPointer = getLabelOrPointerName(line);
-                            if (labelOrPointer != null) {
-                                labelsOrPointersToAssign.add(labelOrPointer);
-                            }
+                    if (!lineObj.isProcessed()) {
+                        lineObj.setEnabled(isCompilationEnabled());
 
-                            String directiveName = getDirectiveName(line);
-                            String mnemonic = getMnemonic(line);
-                            if (directiveName != null) {
-                                if (mnemonic != null) {
-                                    throw new CompilerException("Invalid line: " + line);
-                                }
-
-                                IDirective directive = getDirective(directiveName);
-                                if (directive != null) {
-                                    try {
-                                        String expressions = argHolder.get(currentLine);
-                                        if (expressions == null) {
-                                            expressions = getExpressionsString(line);
-                                        }
-                                        String args = directive.process(this, expressions);
-                                        if (directive.isRepeatable()) {
-                                            argHolder.set(currentLine, args);
-                                        } else {
-                                            processedLines.set(currentLine, true);
-                                        }
+                        if (lineObj.getDirectiveName() != null) {
+                            IDirective directive = getDirective(lineObj);
+                            if (directive == null) {
+                                lineObj.setProcessed(true);
+                                didSomething=true;
+                            } else {
+                                try {
+                                    directive.process(this, lineObj);
+                                    if (!directive.isRepeatable()) {
+                                        lineObj.setProcessed(true);
                                         didSomething = true;
-                                    } catch (EvaluationException e) {
-                                        if (directive.isUnskippable()) {
-                                            setConditionalState(ConditionalState.DISABLED);
-                                            if (firstUnskippableFail == -1) {
-                                                exception = e;
-                                                firstUnskippableFail = currentLine;
-                                            }
-                                            writeError("WARN: " + exception.getMessage());
-                                        }
+                                    }
+                                } catch (EvaluationException e){
+                                    if (directive.cannotFail()) {
+                                        throw new EvaluationException("Directive failed! " + lineObj.getLine(), e);
                                     }
                                 }
-                            } else if (mnemonic != null) {
-                                labelsOrPointersToAssign.clear();
-                                if (isCompilationEnabled()) {
-                                    if (isEditingMacros()) {
-                                        addToMacros(line);
-                                    }
-                                } else if (firstUnskippableFail == -1) {
-                                    processedLines.set(currentLine, true);
-                                    didSomething = true;
-                                }
-                            } else/*nothing of value...*/ {
-                                processedLines.set(currentLine, true);
                             }
+                        } else if (lineObj.getMnemonic() != null) {
+                            if (currentSegment != Segment.CSEG) {
+                                throw new CompilerException("Invalid mnemonic use! " + lineObj.getLine());
+                            }
+                            if (lineObj.isEnabled() && isEditingMacros()){
+                                addToMacros(lineObj);
+                                lineObj.setEnabled(false);
+                            }
+                            lineObj.setProcessed(true);
+                            didSomething=true;
+                        } else {
+                            lineObj.setProcessed(true);
+                            didSomething=true;
                         }
-                    }
-                } while (didSomething);
-
-                if (firstUnskippableFail >= 0) {
-                    Position pos = positions.get(firstUnskippableFail);
-                    if (pos.file == null) {
-                        throw new CompilerException("Cannot process directive! " + pos.line, exception);
-                    } else {
-                        throw new CompilerException("Cannot process directive! " + pos.file + " " + pos.line, exception);
-                    }
-                }
-            }
-            exception=null;
-
-            if (isEditingMacros()) {
-                throw new CompilerException("Is still trying to edit macros! " + Arrays.toString(editingMacros.toArray(new String[0])));
-            }
-
-            for (Map.Entry<String, Binding> entry : tempBindings.entrySet()) {
-                if(entry.getValue().type==Binding.NameType.LABEL){
-                    continue;
-                }
-                putBinding(entry.getKey(), entry.getValue());
-                tempBindings.remove(entry.getKey());
-            }
-
-            labelsOrPointersToAssign.clear();
-
-            int programCounter=0;
-            for (currentLine = 0; currentLine < lines.size(); currentLine++) {
-                if(processedLines.get(currentLine)){
-                    continue;
-                }
-
-                String line = lines.get(currentLine);
-                line=line.replaceAll(NAME_FORMAT+"#","($1-"+programCounter+')');
-                if(line.contains("#")){
-                    throw new CompilerException("Unable to replace with PC difference! "+line);
-                }
-                lines.set(currentLine,line);
-
-                String labelOrPointer = getLabelOrPointerName(line);
-                if (labelOrPointer != null) {
-                    labelsOrPointersToAssign.add(labelOrPointer);
-                }
-
-                String mnemonic=getMnemonic(line);
-                if(mnemonic!=null) {
-                    putProgramLabels(programCounter);
-
-                    if(isMacroDefined(mnemonic)) {
-                        injectMacro(mnemonic, getExpressionsString(line));
-                        processedLines.set(currentLine,true);
                     }else{
-                        programCounter++;
-                    }
-                }else if (containsDirectiveName(line)){
-                    labelsOrPointersToAssign.clear();
-                }
-            }
-
-            for (Map.Entry<String, Binding> entry : tempBindings.entrySet()) {
-                if(entry.getValue().type==Binding.NameType.LABEL){
-
-                }
-                putBinding(entry.getKey(), entry.getValue());
-            }
-            tempBindings.clear();
-
-            {
-                int firstFail;
-                do {
-                    firstFail = -1;
-                    didSomething = false;
-
-                    for (currentLine = 0; currentLine < lines.size(); currentLine++) {
-                        if (!processedLines.get(currentLine)) {
-                            String line = lines.get(currentLine);
-                            String directiveName = getDirectiveName(line);
-                            String mnemonic = getMnemonic(line);
-                            try {
-                                if (directiveName != null) {
-                                    if (mnemonic != null) {
-                                        throw new CompilerException("Invalid line: " + line);
-                                    }
-                                    IDirective directive = getDirective(directiveName);
-                                    if (directive != null) {
-                                        if (directive.isOnlyFirstPass()) {
-                                            throw new CompilerException("Failed to process directive in first pass! " + line);
-                                        }
-                                        directive.process(this, getExpressionsString(line));
-                                    }
-                                } else if (mnemonic != null) {
-                                    String[] expressions = splitExpressionsString(getExpressionsString(line));
-                                    StringBuilder sb = new StringBuilder(mnemonic);
-                                    for (int i = 0; i < expressions.length; i++) {
-                                        sb.append(' ').append(Integer.toString(computeValue(expressions[i]).intValue()));
-                                    }
-                                    lines.set(currentLine, sb.toString());
-                                }
-                                processedLines.set(currentLine, true);
-                                didSomething = true;
-                            } catch (EvaluationException e) {
-                                if (firstFail == -1) {
-                                    exception = e;
-                                    firstFail = currentLine;
-                                }
-                                writeError("WARN: " + exception.getMessage());
+                        if(lineObj.getDirectiveName()!=null){
+                            IDirective directive=getDirective(lineObj);
+                            if(directive!=null) {
+                                directive.offsetOriginIfProcessed(this, lineObj);
                             }
                         }
                     }
-                } while (didSomething);
-                if (firstFail >= 0) {
-                    Position pos = positions.get(firstFail);
-                    if (pos.file == null) {
-                        throw new CompilerException("Cannot finish assembling! " + pos.line, exception);
+                }
+            } while (didSomething);
+        }
+
+        if (isEditingMacros()) {
+            throw new CompilerException("Is still trying to edit macros! " + Arrays.toString(editingMacros.toArray(new String[0])));
+        }
+
+        compilerBindings.removeAllBindings(Binding.NameType.SET);
+
+        softReset();
+
+        for (currentLine = 0; currentLine < lines.size(); currentLine++) {
+            Line lineObj = lines.get(currentLine);
+            if (lineObj.getDirectiveName() != null) {
+                IDirective directive = getDirective(lineObj);
+                if (directive == null) {
+                    lineObj.setProcessed(true);
+                } else {
+                    if (lineObj.isProcessed()) {
+                        directive.offsetOriginIfProcessed(this, lineObj);
                     } else {
-                        throw new CompilerException("Cannot finish assembling! " + pos.file + " " + pos.line, exception);
+                        if(directive.onlyFirstPass()){
+                            if(directive.isRepeatable()) {
+                                lineObj.setProcessed(true);
+                                directive.offsetOriginIfProcessed(this, lineObj);
+                            }else {
+                                throw new CompilerException("Cannot process in first pass! "+lineObj.getLine());
+                            }
+                        }else{
+                            try {
+                                if(lineObj.getEvaluatedArguments()==null) {
+                                    lineObj.setArguments(lineObj.getLatestArguments().replaceAll("\\$", "(" + (getOrigin(Segment.CSEG) + getSegmentOffset(Segment.CSEG)) + ')')
+                                            .replaceAll(NAME_FORMAT + "#", "($1-" + (getOrigin(Segment.CSEG) + getSegmentOffset(Segment.CSEG)) + ')'));
+                                }
+                                if (lineObj.getLatestArguments().contains("#")) {
+                                    throw new CompilerException("Unable to replace with PC difference! " + lineObj.getLine());
+                                }
+                                directive.process(this, lineObj);
+                                if (!directive.isRepeatable()) {
+                                    lineObj.setProcessed(true);
+                                }
+                            } catch (EvaluationException e) {
+                                if (directive.cannotFail()) {
+                                    throw new EvaluationException("Directive failed! " + lineObj.getLine(), e);
+                                }
+                            }
+                        }
                     }
                 }
-            }
+            } else if (lineObj.isEnabled() && lineObj.getMnemonic() != null) {
+                if (currentSegment != Segment.CSEG) {
+                    throw new CompilerException("Invalid mnemonic use! " + lineObj.getLine());
+                }
+                lineObj.setProcessed(false);
 
-            ArrayList<String> made = new ArrayList<>();
-            for(currentLine =0 ;currentLine<lines.size();currentLine++){
-                String line = lines.get(currentLine);
-                String mnemonic=getMnemonic(line);
-                if(mnemonic!=null && !isMacroDefined(mnemonic)){
-                    made.add(line);
+                lineObj.setArguments(lineObj.getLatestArguments().replaceAll("\\$", "(" + (getOrigin(Segment.CSEG) + getSegmentOffset(Segment.CSEG)) + ')')
+                        .replaceAll(NAME_FORMAT + "#", "($1-" + (getOrigin(Segment.CSEG) + getSegmentOffset(Segment.CSEG)) + ')'));
+                if (lineObj.getLatestArguments().contains("#")) {
+                    throw new CompilerException("Unable to replace with PC difference! " + lineObj.getLine());
+                }
+
+                putProgramLabels();
+                if (isMacroDefined(lineObj.getMnemonic())) {
+                    lineObj.setListing(!isMacroListing() && isListing());
+                    injectMacro(lineObj.getMnemonic(), lineObj.getLatestArgumentArray());
+                    lineObj.setProcessed(true);
+                    lineObj.setEnabled(false);
+                } else {
+                    lineObj.setListing(isListing());
+                    offsetCurrentOrigin(1);
                 }
             }
-            if(made.size()!=programCounter){
-                throw new CompilerException("Invalid instruction count! "+programCounter+" "+made.size());
-            }
-            //exception=null;
-
-            madeFile = made;
-        } catch (CompilerException e) {
-            throw new CompilerException(e);
         }
+
+        HashMap<Integer,String> made=new HashMap<>();
+
+        compilerBindings.removeAllBindings(Binding.NameType.SET);
+
+        {
+            do {
+                if(Thread.currentThread().isInterrupted()){
+                    throw new InterruptedException("INTERUPTED!");
+                }
+
+                didSomething = false;
+                softReset();
+
+                for (currentLine = 0; currentLine < lines.size(); currentLine++) {
+                    Line lineObj = lines.get(currentLine);
+                    if (!lineObj.isProcessed()) {
+                        if (lineObj.getDirectiveName() != null) {
+                            IDirective directive = getDirective(lineObj);
+                            if (directive == null) {
+                                lineObj.setProcessed(true);
+                                didSomething=true;
+                            } else {
+                                try {
+                                    directive.process(this, lineObj);
+                                    if (!directive.isRepeatable()) {
+                                        lineObj.setProcessed(true);
+                                        didSomething = true;
+                                    }
+                                } catch (EvaluationException e) {
+                                    if (directive.cannotFail()) {
+                                        throw new EvaluationException("Directive failed! " + lineObj.getLine(), e);
+                                    }
+                                }
+                            }
+                        } else if (lineObj.getMnemonic() != null && lineObj.isEnabled()) {
+                            if (currentSegment != Segment.CSEG) {
+                                throw new CompilerException("Invalid mnemonic use! " + lineObj.getLine());
+                            }
+                            String[] expressions = lineObj.getLatestArgumentArray();
+                            StringBuilder sb = new StringBuilder(lineObj.getMnemonic()).append(' ');
+                            try {
+                                for (String expression : expressions) {
+                                    sb.append(computeString(expression)).append('`');
+                                }
+                                sb.deleteCharAt(sb.length()-1);
+                            }catch (EvaluationException e){
+                                throw new EvaluationException("Mnemonic failed! "+lineObj.getLine(),e);
+                            }
+                            made.put(getCurrentOrigin(), sb.toString());
+                            putCodeLine();
+                            lineObj.setProcessed(true);
+                            didSomething = true;
+                        }
+                    }else if(lineObj.getDirectiveName()!=null){
+                        IDirective directive=getDirective(lineObj);
+                        if(directive!=null) {
+                            directive.offsetOriginIfProcessed(this, lineObj);
+                        }
+                    }else if(lineObj.getMnemonic()!=null && lineObj.isEnabled()){
+                        if (currentSegment != Segment.CSEG) {
+                            throw new CompilerException("Invalid mnemonic use! " + lineObj.getLine());
+                        }
+                        offsetCurrentOrigin(1);
+                    }
+                }
+            } while (didSomething);
+        }
+
+        if(Thread.currentThread().isInterrupted()){
+            throw new InterruptedException("INTERUPTED!");
+        }
+        madeFile = new TreeMap<>(made);
     }
-    public ArrayList<String> getInputFile() {
-        return mainFile;
-    }
-    public ArrayList<String> getMadeFile() {
+
+    public TreeMap<Integer,String> getMadeFile() {
         return madeFile;
+    }
+    
+    public ArrayList<String> getDataCSEG(){
+        ArrayList<String> cseg=new ArrayList<>(Math.max(madeFile.size(),getMemorySize(Segment.CSEG)));
+        for (int i = 0,len=Math.max(madeFile.size(), getMemorySize(Segment.CSEG)); i < len; i++) {
+            cseg.add("");
+        }
+        for(Map.Entry<Integer,Integer> entry:constants[Segment.CSEG.ordinal()].entrySet()){
+            cseg.set(entry.getKey(),entry.getValue().toString());
+        }
+        for(Map.Entry<Integer,String> entry:madeFile.entrySet()){
+            cseg.set(entry.getKey(),entry.getValue());
+        }
+        return cseg;
+    }
+    public ArrayList<String> getDataDSEG(){
+        ArrayList<String> dseg=new ArrayList<>(getMemorySize(Segment.DSEG));
+        for (int i = 0,len=getMemorySize(Segment.DSEG); i < len; i++) {
+            dseg.add("");
+        }
+        for(Map.Entry<Integer,Integer> entry:constants[Segment.ESEG.ordinal()].entrySet()){
+            dseg.set(entry.getKey(),entry.getValue().toString());
+        }
+        return dseg;
+    }
+    public ArrayList<String> getDataESEG(){
+        ArrayList<String> eseg=new ArrayList<>(getMemorySize(Segment.ESEG));
+        for (int i = 0,len=getMemorySize(Segment.ESEG); i < len; i++) {
+            eseg.add("");
+        }
+        for(Map.Entry<Integer,Integer> entry:constants[Segment.ESEG.ordinal()].entrySet()){
+            eseg.set(entry.getKey(),entry.getValue().toString());
+        }
+        return eseg;
     }
     //endregion
 
     //region include
-    public void setIncluder(Includer include) {
-        this.includer = include;
-    }
-    public Includer getIncluder() {
-        return includer;
-    }
-    public void include(String file) throws CompilerException{
-        if(file==null){
+    public void include(String includeName) throws CompilerException {
+        if (includeName == null) {
             throw new InvalidInclude("Cannot include null!");
         }
-        ArrayList<String> list=includedFiles.get(file);
-        if(list==null){
-            if (includer == null) {
-                throw new InvalidInclude("No include processor set!");
-            }
-            list=includer.include(file);
-            if(list==null){
-                throw new InvalidInclude("Unable to include file! "+file);
-            }
-            list=sanitizeList(list);
-            includedFiles.put(file,list);
-        }
-        //inject lines
-        int nextLine=currentLine+1;
-
-        ArrayList<Position> pos=new ArrayList<>();
-        ArrayList<Boolean> bools=new ArrayList<>();
-        ArrayList<String> args=new ArrayList<>();
-        Position current=positions.get(currentLine);
-        String prevFile=current.file;
-        for(int i=0;i<list.size();i++){
-            pos.add(new Position(i,prevFile+file+'\t'));
-            bools.add(false);
-            args.add(null);
-        }
-        positions.addAll(nextLine,pos);
-        processedLines.addAll(nextLine,bools);
-        lines.addAll(nextLine,list);
-        argHolder.addAll(nextLine,args);
+        Line line = lines.get(currentLine);
+        lines.addAll(currentLine + 1,
+                sources.getInclude(line.getIncludePath(), line.getIncludeName(), includeName, currentLine, isListing()));
     }
-    public void exit(){
-        Position pos = positions.get(currentLine);
-        String file = pos.file;
-        processedLines.set(currentLine, true);
-        for (currentLine++; currentLine < lines.size(); currentLine++) {
-            if (positions.get(currentLine).file.contains(file)) {
-                processedLines.set(currentLine, true);
+
+    public void exitCurrentFile() {
+        Line l = lines.get(currentLine);
+        String file = l.getIncludePath();
+        for (int i = currentLine + 1, size = lines.size(); i < size; ) {
+            l = lines.get(currentLine);
+            if (l.getIncludePath().startsWith(file)) {
+                l.setProcessed(true);
+                i++;
             } else {
-                currentLine--;
                 break;
             }
         }
@@ -428,48 +413,48 @@ public final class ProgramCompiler {
     //endregion
 
     //region segment
-    public void setCurrentSegment(Segment currentSegment) throws InvalidMemorySegment{
-        if(currentSegment==null){
+    public void setCurrentSegment(Segment currentSegment) throws InvalidMemorySegment {
+        if (currentSegment == null) {
             throw new InvalidMemorySegment("Segment cannot be null!");
         }
         this.currentSegment = currentSegment;
     }
+
     public Segment getCurrentSegment() {
         return currentSegment;
     }
     //endregion
 
     //region start offsets
-    public int getCurrentSegmentOffset(){
+    public int getCurrentSegmentOffset() {
         return startOffset[currentSegment.ordinal()];
     }
-    public int getSegmentOffset(Segment segment){
+
+    public int getSegmentOffset(Segment segment) {
         return startOffset[segment.ordinal()];
     }
-    public void setCurrentSegmentOffset(int offset) throws InvalidStartOffset{
-        if(offset<0){
-            throw new InvalidStartOffset("Start offset must be not negative! "+offset);
+
+    public void setSegmentOffset(Segment segment, int offset) throws InvalidStartOffset {
+        if (offset < 0) {
+            throw new InvalidStartOffset("Start offset must be not negative! " + offset);
         }
-        startOffset[currentSegment.ordinal()]=offset;
-    }
-    public void setSegmentOffset(Segment segment,int offset) throws InvalidStartOffset{
-        if(offset<0){
-            throw new InvalidStartOffset("Start offset must be not negative! "+offset);
-        }
-        startOffset[segment.ordinal()]=offset;
+        startOffset[segment.ordinal()] = offset;
     }
     //endregion
 
     //region overlap policy
-    public void setCurrentOverlap(boolean value){
-        overlap[currentSegment.ordinal()]=value;
+    public void setCurrentOverlap(boolean value) {
+        overlap[currentSegment.ordinal()] = value;
     }
-    public void setOverlap(Segment segment,boolean value){
-        overlap[segment.ordinal()]=value;
+
+    public void setOverlap(boolean value, Segment segment) {
+        overlap[segment.ordinal()] = value;
     }
+
     public boolean getCurrentOverlap() {
         return overlap[currentSegment.ordinal()];
     }
+
     public boolean getOverlap(Segment segment) {
         return overlap[segment.ordinal()];
     }
@@ -477,349 +462,315 @@ public final class ProgramCompiler {
 
     //region origin
     public void offsetCurrentOrigin(int value) throws InvalidOrigin {
-        if(origins[currentSegment.ordinal()]+value<0){
-            throw new InvalidOrigin("Origin must be not negative! "+origins[currentSegment.ordinal()]+"+"+value);
+        if (origins[currentSegment.ordinal()] + value < 0) {
+            throw new InvalidOrigin("Origin must be not negative! " + origins[currentSegment.ordinal()] + "+" + value);
         }
-        origins[currentSegment.ordinal()]+=value;
+        origins[currentSegment.ordinal()] += value;
     }
-    public void setCurrentOrigin(int value) throws InvalidOrigin{
-        if(value<0){
-            throw new InvalidOrigin("Origin must be not negative! "+value);
+
+    public void setCurrentOrigin(int value) throws InvalidOrigin {
+        if (value < 0) {
+            throw new InvalidOrigin("Origin must be not negative! " + value);
         }
-        origins[currentSegment.ordinal()]=value;
+        origins[currentSegment.ordinal()] = value;
     }
-    public void setOrigin(int value, Segment segment) throws InvalidOrigin{
-        if(value<0){
-            throw new InvalidOrigin("Origin must be not negative! "+value);
+
+    public void setOrigin(int value, Segment segment) throws InvalidOrigin {
+        if (value < 0) {
+            throw new InvalidOrigin("Origin must be not negative! " + value);
         }
-        origins[segment.ordinal()]=value;
+        origins[segment.ordinal()] = value;
     }
+
     public int getCurrentOrigin() {
         return origins[currentSegment.ordinal()];
     }
+
     public int getOrigin(Segment segment) {
         return origins[segment.ordinal()];
     }
     //endregion
 
     //region mem use - for CSEG after instructions!
-    public int getCurrentMemorySize(){
+    public int getCurrentMemorySize() {
         return constantRanges[currentSegment.ordinal()].length();
     }
-    public int getMemorySize(Segment segment){
+
+    public int getMemorySize(Segment segment) {
         return constantRanges[segment.ordinal()].length();
     }
-    public boolean isCurrentMemoryCellFree(){
-        return constantRanges[currentSegment.ordinal()].get(getCurrentOrigin());
+
+    public boolean isCurrentMemoryCellFree() {
+        return !constantRanges[currentSegment.ordinal()].get(getCurrentOrigin());
     }
+
     public boolean isCurrentMemoryCellFree(int address) throws InvalidMemoryAccess {
-        if(address<0){
-            throw new InvalidMemoryAccess("Memory address must be not negative! "+address);
+        if (address < 0) {
+            throw new InvalidMemoryAccess("Memory address must be not negative! " + address);
         }
-        return constantRanges[currentSegment.ordinal()].get(address);
+        return !constantRanges[currentSegment.ordinal()].get(address);
     }
-    public boolean isMemoryCellFree(Segment segment,int address) throws InvalidMemoryAccess {
-        if(address<0){
-            throw new InvalidMemoryAccess("Memory address must be not negative! "+address);
+
+    public boolean isMemoryCellFree(Segment segment, int address) throws InvalidMemoryAccess {
+        if (address < 0) {
+            throw new InvalidMemoryAccess("Memory address must be not negative! " + address);
         }
-        return constantRanges[segment.ordinal()].get(address);
+        return !constantRanges[segment.ordinal()].get(address);
     }
+
     public boolean isCurrentMemoryRangeFree(int toExclusive) throws InvalidMemoryAccess {
-        if(getCurrentOrigin()>=toExclusive){
-            throw new InvalidMemoryAccess("Range end must be greater than origin! "+getCurrentOrigin()+" !< "+toExclusive);
+        if (getCurrentOrigin() >= toExclusive) {
+            throw new InvalidMemoryAccess("Range end must be greater than origin! " + getCurrentOrigin() + " !< " + toExclusive);
         }
-        return constantRanges[currentSegment.ordinal()].nextClearBit(getCurrentOrigin())>=toExclusive;
+        return constantRanges[currentSegment.ordinal()].nextClearBit(getCurrentOrigin()) >= toExclusive;
     }
-    public boolean isCurrentMemoryRangeFree(int fromInclusive,int toExclusive) throws InvalidMemoryAccess {
-        if(fromInclusive<0){
-            throw new InvalidMemoryAccess("Range start must be not negative! "+fromInclusive);
+
+    public boolean isCurrentMemoryRangeFree(int fromInclusive, int toExclusive) throws InvalidMemoryAccess {
+        if (fromInclusive < 0) {
+            throw new InvalidMemoryAccess("Range start must be not negative! " + fromInclusive);
         }
-        if(fromInclusive>=toExclusive){
-            throw new InvalidMemoryAccess("Range end must be greater than range start! "+fromInclusive+" !< "+toExclusive);
+        if (fromInclusive >= toExclusive) {
+            throw new InvalidMemoryAccess("Range end must be greater than range start! " + fromInclusive + " !< " + toExclusive);
         }
-        return constantRanges[currentSegment.ordinal()].nextClearBit(fromInclusive)>=toExclusive;
+        return constantRanges[currentSegment.ordinal()].nextClearBit(fromInclusive) >= toExclusive;
     }
-    public boolean isMemoryRangeFree(Segment segment,int fromInclusive,int toExclusive) throws InvalidMemoryAccess{
-        if(fromInclusive<0){
-            throw new InvalidMemoryAccess("Range start must be not negative! "+fromInclusive);
+
+    public boolean isMemoryRangeFree(Segment segment, int fromInclusive, int toExclusive) throws InvalidMemoryAccess {
+        if (fromInclusive < 0) {
+            throw new InvalidMemoryAccess("Range start must be not negative! " + fromInclusive);
         }
-        if(fromInclusive>=toExclusive){
-            throw new InvalidMemoryAccess("Range end must be greater than range start! "+fromInclusive+" !< "+toExclusive);
+        if (fromInclusive >= toExclusive) {
+            throw new InvalidMemoryAccess("Range end must be greater than range start! " + fromInclusive + " !< " + toExclusive);
         }
-        return constantRanges[segment.ordinal()].nextClearBit(fromInclusive)>=toExclusive;
+        return constantRanges[segment.ordinal()].nextClearBit(fromInclusive) >= toExclusive;
     }
+
     public boolean isCurrentMemoryBlockFree(int size) throws InvalidMemoryAccess {
-        if(size<=0){
-            throw new InvalidMemoryAccess("Block size must be positive! "+size);
+        if (size <= 0) {
+            throw new InvalidMemoryAccess("Block size must be positive! " + size);
         }
-        int offset=getCurrentOrigin();
-        return constantRanges[currentSegment.ordinal()].nextClearBit(offset)>=offset+size;
+        int offset = getCurrentOrigin();
+        return constantRanges[currentSegment.ordinal()].nextClearBit(offset) >= offset + size;
     }
-    public boolean isCurrentMemoryBlockFree(int start,int size)throws InvalidMemoryAccess{
-        if(start<0){
-            throw new InvalidMemoryAccess("Block start must be not negative! "+start);
+
+    public boolean isCurrentMemoryBlockFree(int start, int size) throws InvalidMemoryAccess {
+        if (start < 0) {
+            throw new InvalidMemoryAccess("Block start must be not negative! " + start);
         }
-        if(size<=0){
-            throw new InvalidMemoryAccess("Block size must be positive! "+size);
+        if (size <= 0) {
+            throw new InvalidMemoryAccess("Block size must be positive! " + size);
         }
-        return constantRanges[currentSegment.ordinal()].nextClearBit(start)>=start+size;
+        return constantRanges[currentSegment.ordinal()].nextClearBit(start) >= start + size;
     }
-    public boolean isMemoryBlockFree(Segment segment,int start,int size)throws InvalidMemoryAccess{
-        if(start<0){
-            throw new InvalidMemoryAccess("Block start must be not negative! "+start);
+
+    public boolean isMemoryBlockFree(Segment segment, int start, int size) throws InvalidMemoryAccess {
+        if (start < 0) {
+            throw new InvalidMemoryAccess("Block start must be not negative! " + start);
         }
-        if(size<=0){
-            throw new InvalidMemoryAccess("Block size must be positive! "+size);
+        if (size <= 0) {
+            throw new InvalidMemoryAccess("Block size must be positive! " + size);
         }
-        return constantRanges[segment.ordinal()].nextClearBit(start)>=start+size;
+        return constantRanges[segment.ordinal()].nextClearBit(start) >= start + size;
     }
     //endregion
 
     //region constants
-    public boolean putConstant(int constant) throws InvalidOrigin,InvalidMemoryAllocation,InvalidBinding{
-        if(currentSegment==Segment.DSEG){
-            throw new InvalidMemoryAllocation("Cannot store constants in volatile memory! "+constant);
+    public void putConstant(int constant) throws InvalidOrigin, InvalidMemoryAllocation, InvalidBinding {
+        if (currentSegment == Segment.DSEG) {
+            throw new InvalidMemoryAllocation("Cannot store constants in volatile memory! " + constant);
         }
-        int segment=currentSegment.ordinal();//todo add labeling from labels to assign, todo add temp binding
-        if(currentSegment==Segment.CSEG){
-            int origin=constants[segment].size();
-            try {
-                for (String s : labelsOrPointersToAssign) {
-                    putBinding(tempBindings,s,new Binding(Binding.NameType.POINTER,origin));
-                }
-            }finally {
-                labelsOrPointersToAssign.clear();
+        if (getCurrentOverlap() || isCurrentMemoryCellFree()) {
+            int segment = currentSegment.ordinal();//todo add labeling from labels to assign, todo add temp binding
+            int origin = getCurrentOrigin();
+            int offset = getCurrentSegmentOffset();
+            for (String s : getLabelsOrPointersNames()) {
+                putBinding(s, new Binding(Binding.NameType.POINTER, offset + origin));
             }
             constantRanges[segment].set(origin);
-            constants[segment].put(origin,constant);
-            return true;
-        }
-        if(getCurrentOverlap() || isCurrentMemoryCellFree()){
-            int origin=getCurrentOrigin();
-            int offset=getCurrentSegmentOffset();
-            try {
-                for (String s : labelsOrPointersToAssign) {
-                    putBinding(s,new Binding(Binding.NameType.POINTER,offset+origin));
-                }
-            }finally {
-                labelsOrPointersToAssign.clear();
-            }
-            constantRanges[segment].set(origin);
-            constants[segment].put(origin,constant);
+            constants[segment].put(origin, constant);
             offsetCurrentOrigin(1);
-            return true;
+        }else{
+            throw new InvalidMemoryAllocation("Memory overlaps! "+currentSegment.name()+" "+getCurrentOrigin());
         }
-        return false;
     }
-    public boolean putConstant(float constant) throws InvalidOrigin,InvalidMemoryAllocation,InvalidBinding{
-        if(currentSegment==Segment.DSEG){
-            throw new InvalidMemoryAllocation("Cannot store constants in volatile memory! "+constant);
+
+    public void putConstant(float constant) throws InvalidOrigin, InvalidMemoryAllocation, InvalidBinding {
+        if (currentSegment == Segment.DSEG) {
+            throw new InvalidMemoryAllocation("Cannot store constants in volatile memory! " + constant);
         }
-        int segment=currentSegment.ordinal();
-        if(currentSegment==Segment.CSEG){
-            int origin=constants[segment].size();
-            try {
-                for (String s : labelsOrPointersToAssign) {
-                    putBinding(tempBindings,s,new Binding(Binding.NameType.POINTER,origin));
-                }
-            }finally {
-                labelsOrPointersToAssign.clear();
+        int segment = currentSegment.ordinal();
+        if (getCurrentOverlap() || isCurrentMemoryCellFree()) {
+            int origin = getCurrentOrigin();
+            int offset = getCurrentSegmentOffset();
+            for (String s : getLabelsOrPointersNames()) {
+                putBinding(s, new Binding(Binding.NameType.POINTER, offset + origin));
             }
             constantRanges[segment].set(origin);
-            constants[segment].put(origin,Float.floatToIntBits(constant));
-            return true;
-        }
-        if(getCurrentOverlap() || isCurrentMemoryCellFree()){
-            int origin=getCurrentOrigin();
-            int offset=getCurrentSegmentOffset();
-            try {
-                for (String s : labelsOrPointersToAssign) {
-                    putBinding(s,new Binding(Binding.NameType.POINTER,offset+origin));
-                }
-            }finally {
-                labelsOrPointersToAssign.clear();
-            }
-            constantRanges[segment].set(origin);
-            constants[segment].put(origin,Float.floatToIntBits(constant));
+            constants[segment].put(origin, Float.floatToIntBits(constant));
             offsetCurrentOrigin(1);
-            return true;
+        }else{
+            throw new InvalidMemoryAllocation("Memory overlaps! "+currentSegment.name()+" "+getCurrentOrigin());
         }
-        return false;
     }
-    public boolean putConstant(long constant) throws InvalidOrigin,InvalidMemoryAccess,InvalidMemoryAllocation,InvalidBinding {
-        if(currentSegment==Segment.DSEG){
-            throw new InvalidMemoryAllocation("Cannot store constants in volatile memory! "+constant);
+
+    public void putConstant(long constant) throws InvalidOrigin, InvalidMemoryAccess, InvalidMemoryAllocation, InvalidBinding {
+        if (currentSegment == Segment.DSEG) {
+            throw new InvalidMemoryAllocation("Cannot store constants in volatile memory! " + constant);
         }
-        int segment=currentSegment.ordinal();
-        if(currentSegment==Segment.CSEG){
-            int origin=constants[segment].size();
-            try {
-                for (String s : labelsOrPointersToAssign) {
-                    putBinding(tempBindings,s,new Binding(Binding.NameType.POINTER,origin));
-                }
-            }finally {
-                labelsOrPointersToAssign.clear();
+        if (getCurrentOverlap() || isCurrentMemoryBlockFree(2)) {
+            int segment = currentSegment.ordinal();
+            int origin = getCurrentOrigin();
+            int offset = getCurrentSegmentOffset();
+            for (String s : getLabelsOrPointersNames()) {
+                putBinding(s, new Binding(Binding.NameType.POINTER, offset + origin));
             }
-            constantRanges[segment].set(origin,origin+2);
-            constants[segment].put(origin,(int)constant);
-            constants[segment].put(origin+1,(int)(constant>>32));
-            return true;
-        }
-        if(getCurrentOverlap() || isCurrentMemoryBlockFree(2)){
-            int origin=getCurrentOrigin();
-            int offset=getCurrentSegmentOffset();
-            try {
-                for (String s : labelsOrPointersToAssign) {
-                    putBinding(s,new Binding(Binding.NameType.POINTER,offset+origin));
-                }
-            }finally {
-                labelsOrPointersToAssign.clear();
-            }
-            constantRanges[segment].set(origin,origin+2);
-            constants[segment].put(origin,(int)constant);
-            constants[segment].put(origin+1,(int)(constant>>32));
+            constantRanges[segment].set(origin, origin + 2);
+            constants[segment].put(origin, (int) constant);
+            constants[segment].put(origin + 1, (int) (constant >> 32));
             offsetCurrentOrigin(2);
-            return true;
+        }else{
+            throw new InvalidMemoryAllocation("Memory overlaps! "+currentSegment.name()+" "+getCurrentOrigin());
         }
-        return false;
     }
-    public boolean putConstant(String constant) throws InvalidOrigin,InvalidMemoryAccess,InvalidMemoryAllocation,InvalidConstant,InvalidBinding {
-        if(currentSegment==Segment.DSEG){
-            throw new InvalidMemoryAllocation("Cannot store constants in volatile memory! "+constant);
+
+    public void putConstant(String constant) throws InvalidOrigin, InvalidMemoryAccess, InvalidMemoryAllocation, InvalidConstant, InvalidBinding {
+        if (currentSegment == Segment.DSEG) {
+            throw new InvalidMemoryAllocation("Cannot store constants in volatile memory! " + constant);
         }
-        if(constant==null){
+        if (constant == null) {
             throw new InvalidConstant("String constant cannot be null!");
         }
-        if(constant.length()==0){
+        if (constant.length() == 0) {
             throw new InvalidConstant("String constant must not be empty!");
         }
-        int segment=currentSegment.ordinal();
-        int length=constant.length();
-        if(currentSegment==Segment.CSEG){
-            int origin=constants[segment].size();
-            try {
-                for (String s : labelsOrPointersToAssign) {
-                    putBinding(tempBindings,s,new Binding(Binding.NameType.POINTER,origin));
-                }
-            }finally {
-                labelsOrPointersToAssign.clear();
+        int length = constant.length();
+        if (getCurrentOverlap() || isCurrentMemoryBlockFree(length)) {
+            int segment = currentSegment.ordinal();
+            int origin = getCurrentOrigin();
+            int offset = getCurrentSegmentOffset();
+            for (String s : getLabelsOrPointersNames()) {
+                putBinding(s, new Binding(Binding.NameType.POINTER, offset + origin));
             }
-            constantRanges[segment].set(origin,origin+length);
-            for(int i=0;i<constant.length();i++){
-                constants[segment].put(origin+i,(int)constant.charAt(i));
-            }
-            return true;
-        }
-        if(getCurrentOverlap() || isCurrentMemoryBlockFree(length)){
-            int origin=getCurrentOrigin();
-            int offset=getCurrentSegmentOffset();
-            try {
-                for (String s : labelsOrPointersToAssign) {
-                    putBinding(s,new Binding(Binding.NameType.POINTER,offset+origin));
-                }
-            }finally {
-                labelsOrPointersToAssign.clear();
-            }
-            constantRanges[segment].set(origin,origin+length);
-            for(int i=0;i<constant.length();i++){
-                constants[segment].put(origin+i,(int)constant.charAt(i));
+            constantRanges[segment].set(origin, origin + length);
+            for (int i = 0; i < constant.length(); i++) {
+                constants[segment].put(origin + i, (int) constant.charAt(i));
             }
             offsetCurrentOrigin(length);
-            return true;
+        }else{
+            throw new InvalidMemoryAllocation("Memory overlaps! "+currentSegment.name()+" "+getCurrentOrigin());
         }
-        return false;
     }
-    public boolean reserveMemory(int cellCount) throws InvalidOrigin,InvalidMemoryAccess,InvalidMemoryAllocation,InvalidBinding {
-        if(currentSegment==Segment.CSEG){
-            throw new InvalidMemoryAllocation("Cannot store variables in program memory! "+cellCount);
-        }
-        if(cellCount<=0){
-            throw new InvalidMemoryAllocation("Memory block size must have positive size! "+cellCount);
-        }
-        if(getCurrentOverlap() || isCurrentMemoryBlockFree(cellCount)){
-            int segment=currentSegment.ordinal();
-            int origin=getCurrentOrigin();
-            int offset=getCurrentSegmentOffset();
-            try {
-                for (String s : labelsOrPointersToAssign) {
-                    putBinding(s,new Binding(Binding.NameType.POINTER,offset+origin));
-                }
-            }finally {
-                labelsOrPointersToAssign.clear();
-            }
 
-            constantRanges[segment].set(origin,origin+cellCount);
-            for(int i=0;i<cellCount;i++){
-                constants[segment].put(origin+i,0);
+    public void reserveMemory(int cellCount) throws InvalidOrigin, InvalidMemoryAccess, InvalidMemoryAllocation, InvalidBinding {
+        if (currentSegment == Segment.CSEG) {
+            throw new InvalidMemoryAllocation("Cannot store variables in program memory! " + cellCount);
+        }
+        if (cellCount <= 0) {
+            throw new InvalidMemoryAllocation("Memory block size must have positive size! " + cellCount);
+        }
+        if (getCurrentOverlap() || isCurrentMemoryBlockFree(cellCount)) {
+            int segment = currentSegment.ordinal();
+            int origin = getCurrentOrigin();
+            int offset = getCurrentSegmentOffset();
+            for (String s : getLabelsOrPointersNames()) {
+                putBinding(s, new Binding(Binding.NameType.POINTER, offset + origin));
+            }
+            constantRanges[segment].set(origin, origin + cellCount);
+            for (int i = 0; i < cellCount; i++) {
+                constants[segment].put(origin + i, 0);
             }
             offsetCurrentOrigin(cellCount);
-            return true;
         }
-        return false;
+        throw new InvalidMemoryAllocation("Cannot store variables in program memory! " + cellCount);
     }
-    public void putBinding(String name,Binding binding) throws InvalidBinding{
-        putBinding(compilerBindings,name,binding);
-    }
-    public static void putBinding(HashMap<String,Binding> map, String name, Binding binding) throws InvalidBinding{
-        if(name==null || name.length()==0 || !name.matches(NAME_FORMAT)){
-            throw new InvalidBinding("Invalid binding name specified! "+name);
+
+    public void putBinding(String name, Binding binding) throws InvalidBinding {
+        if (binding == null) {
+            throw new InvalidBinding("Invalid binding specified! " + name);
         }
-        Binding old=map.get(name);
-        if(old!=null) {
+        if (name == null || name.length() == 0 || !name.matches(NAME_FORMAT)) {
+            throw new InvalidBinding("Invalid binding name specified! " + name);
+        }
+        Binding old = compilerBindings.getBinding(name);
+        if (old != null) {
             switch (old.type) {
-                case SET: case DEF: break;
-                default: throw new InvalidBinding("Cannot rewrite that binding! " + old.type.name()+" "+name);
+                case SET:
+                case DEF:
+                    break;
+                default:
+                    throw new InvalidBinding("Cannot rewrite that binding! " + old.type.name() + " " + name);
             }
         }
-        map.put(name,binding);
+        compilerBindings.putBinding(name, binding);
     }
-    public static void putBinding(HashMap<String,Object> map, String name, Object binding) throws InvalidBinding{
-        if(!(binding instanceof Binding)){
-            throw new InvalidBinding("Invalid binding specified! "+name);
+
+    public void putCodeLine() throws InvalidMemoryAllocation,InvalidOrigin{
+        if (currentSegment != Segment.CSEG) {
+            throw new InvalidMemoryAllocation("Cannot store program outside program memory!");
         }
-        if(name==null || name.length()==0 || !name.matches(NAME_FORMAT)){
-            throw new InvalidBinding("Invalid binding name specified! "+name);
+        if (getCurrentOverlap() || isCurrentMemoryCellFree()) {
+            int segment = currentSegment.ordinal();
+            int origin = getCurrentOrigin();
+            constantRanges[segment].set(origin);
+            offsetCurrentOrigin(1);
+        }else{
+            throw new InvalidMemoryAllocation("Memory overlaps! "+currentSegment.name()+" "+getCurrentOrigin());
         }
-        Object objec=map.get(name);
-        if(objec!=null && !(objec instanceof Binding)){
-            throw new InvalidBinding("Invalid binding detected! "+name);
-        }
-        if(objec!=null) {
-            Binding old=(Binding)objec;
-            switch (old.type) {
-                case SET: case DEF: break;
-                default: throw new InvalidBinding("Cannot rewrite that binding! " + old.type.name()+" "+name);
-            }
-        }
-        map.put(name,binding);
     }
-    public void putProgramLabels(int currentPC) throws InvalidBinding{
-        try {
-            for (String name : labelsOrPointersToAssign) {
-                putBinding(name, new Binding(Binding.NameType.LABEL, currentPC));
-            }
-        }finally {
-            labelsOrPointersToAssign.clear();
+
+    public void putProgramLabels() throws InvalidMemoryAllocation,InvalidBinding {
+        if (currentSegment != Segment.CSEG) {
+            throw new InvalidMemoryAllocation("Cannot define program labels outside program memory!");
         }
+        for (String name : getLabelsOrPointersNames()) {
+            putBinding(name, new Binding(Binding.NameType.LABEL, getCurrentOrigin() + getCurrentSegmentOffset()));
+        }
+    }
+
+    public ArrayList<String> getLabelsOrPointersNames() {
+        ArrayList<String> names = new ArrayList<>();
+        Line line = lines.get(currentLine);
+        if (line.getLabelOrPointerName() != null) {
+            names.add(line.getLabelOrPointerName());
+        }
+        for (int i = currentLine - 1; i >= 0; i++) {
+            line = lines.get(i);
+            if (line.isEnabled()) {
+                if (line.getMnemonic() == null && line.getDirectiveName() == null) {
+                    if (line.getLabelOrPointerName() != null) {
+                        names.add(line.getLabelOrPointerName());
+                    }
+                } else {
+                    break;
+                }
+            }
+        }
+        return names;
     }
     //endregion
 
     //region compute
-    public String computeString(String script) throws EvaluationException{
+    public String computeString(String script) throws EvaluationException {
         try {
             Object value = scriptEngine.eval(SANDBOX + script);
-            if(value instanceof String){
+            if (value instanceof String) {
                 return (String) value;
-            }else if(value instanceof Number || value instanceof Boolean){
+            } else if (value instanceof Number || value instanceof Boolean) {
                 return value.toString();
             }
-            writeError("Returned type: " + value.getClass().getCanonicalName());
-            return value.toString();
-        }catch (ScriptException e){
-            throw new EvaluationException("Cannot evaluate! "+script,e);
+            if(value==null){
+                writeError("Returned type: <NULL>");
+                return "";
+            }else {
+                writeError("Returned type: " + value.getClass().getCanonicalName());
+                return value.toString();
+            }
+        } catch (ScriptException e) {
+            throw new EvaluationException("Cannot evaluate! " + script, e);
         }
     }
-    public Number computeValue(String script) throws EvaluationException{
+
+    public Number computeNumber(String script) throws EvaluationException {
         try {
             Object value = scriptEngine.eval(SANDBOX + script);
             if (value instanceof Number) {
@@ -827,13 +778,18 @@ public final class ProgramCompiler {
             } else if (value instanceof Boolean) {
                 return (Boolean) value ? 1 : 0;
             }
-            writeError("Returned type: " + value.getClass().getCanonicalName());
+            if(value==null){
+                writeError("Returned type: <NULL>");
+            }else {
+                writeError("Returned type: " + value.getClass().getCanonicalName());
+            }
             return 0;
         } catch (ScriptException e) {
             throw new EvaluationException("Cannot evaluate! " + script, e);
         }
     }
-    public boolean computeBoolean(String script) throws EvaluationException{
+
+    public Boolean computeBoolean(String script) throws EvaluationException {
         try {
             Object value = scriptEngine.eval(SANDBOX + script);
             if (value instanceof Boolean) {
@@ -841,82 +797,91 @@ public final class ProgramCompiler {
             } else if (value instanceof Number) {
                 return ((Number) value).intValue() != 0;
             }
-            writeError("Returned type: " + value.getClass().getCanonicalName());
+            if(value==null){
+                writeError("Returned type: <NULL>");
+            }else {
+                writeError("Returned type: " + value.getClass().getCanonicalName());
+            }
             return false;
         } catch (ScriptException e) {
             throw new EvaluationException("Cannot evaluate! " + script, e);
         }
     }
-    public Object computeObject(String script) throws EvaluationException{
+
+    public Object computeObject(String script) throws EvaluationException {
         try {
             Object value = scriptEngine.eval(SANDBOX + script);
-            if (value instanceof Number) {
-                return ((Number) value).doubleValue();
-            } else if (value instanceof Boolean) {
-                return (Boolean) value ? 1 : 0;
+            if (value instanceof Number || value instanceof Boolean || value instanceof String) {
+                return value;
             }
-            writeError("Returned type: " + value.getClass().getCanonicalName());
+            if(value==null){
+                writeError("Returned type: <NULL>");
+            }else {
+                writeError("Returned type: " + value.getClass().getCanonicalName());
+            }
             return null;
         } catch (ScriptException e) {
             throw new EvaluationException("Cannot evaluate! " + script, e);
         }
     }
-    public void writeError(String s)throws PrintingException{
+
+    public void writeError(String s) throws PrintingException {
         try {
-            scriptContext.getErrorWriter().write(s+"\n");
-        }catch (IOException e){
-            throw new PrintingException("Cannot print error! "+s,e);
+            scriptContext.getErrorWriter().write(s + "\n");
+        } catch (IOException e) {
+            throw new PrintingException("Cannot print error! " + s, e);
         }
     }
-    public void write(String s) throws PrintingException{
+
+    public void write(String s) throws PrintingException {
         try {
-            scriptContext.getWriter().write(s+"\n");
-        }catch (IOException e){
-            throw new PrintingException("Cannot print! "+s,e);
+            scriptContext.getWriter().write(s + "\n");
+        } catch (IOException e) {
+            throw new PrintingException("Cannot print! " + s, e);
         }
     }
-    public void removeBinding(String name) throws InvalidBinding{
-        Binding old=compilerBindings.getBinding(name);
-        if(old==null){
-            throw new InvalidBinding("Cannot remove binding name is unused! "+name);
+
+    public void removeBinding(String name) throws InvalidBinding {
+        Binding old = compilerBindings.getBinding(name);
+        if (old == null) {
+            throw new InvalidBinding("Cannot remove binding name is unused! " + name);
         }
-        switch (old.type){
-            case SET: case DEF: break;
-            default: throw new InvalidBinding("Cannot remove that binding! "+old.type.name()+" "+name);
+        switch (old.type) {
+            case SET:
+            case DEF:
+                break;
+            default:
+                throw new InvalidBinding("Cannot remove that binding! " + old.type.name() + " " + name);
         }
-        compilerBindings.remove(name);
+        compilerBindings.removeBinding(name);
     }
-    public boolean containsNotDefs(String... keys) throws InvalidBinding{
-        for(String name:keys){
-            if(name==null || name.length()==0 || !name.matches(NAME_FORMAT)){
-                throw new InvalidBinding("Invalid binding name specified! "+name);
+
+    public boolean containsNotDefs(String... keys) throws InvalidBinding {
+        for (String name : keys) {
+            if (name == null || name.length() == 0 || !name.matches(NAME_FORMAT)) {
+                throw new InvalidBinding("Invalid binding name specified! " + name);
             }
         }
-        return compilerBindings.containsNotDefs(keys);
+        return compilerBindings.containsNotDefinitions(keys);
     }
-    public boolean lacksNotDefs(String... keys) throws InvalidBinding{
-        for(String name:keys){
-            if(name==null || name.length()==0 || !name.matches(NAME_FORMAT)){
-                throw new InvalidBinding("Invalid binding name specified! "+name);
+
+    public boolean lacksNotDefs(String... keys) throws InvalidBinding {
+        for (String name : keys) {
+            if (name == null || name.length() == 0 || !name.matches(NAME_FORMAT)) {
+                throw new InvalidBinding("Invalid binding name specified! " + name);
             }
         }
-        return compilerBindings.lacksNotDefs(keys);
+        return compilerBindings.lacksNotDefinitions(keys);
     }
     //endregion
 
     //region parse
-    public Number parseValue(String value){
-        if(compilerBindings.containsKey(value)) {
-            return compilerBindings.getBinding(value).value;
-        }
-        return parseNumberAdvanced(value);
-    }
-
-    public static Number parseNumberAdvanced(String str){
-        str=str.replaceAll("_","");
-        if(str.contains(".")) {
+    public static Number parseNumberAdvanced(String str) {
+        str = str.replaceAll("_", "");
+        if (str.contains(".")) {
             return Double.parseDouble(str);
-        }if (str.contains("0x") | str.contains("0X")) {
+        }
+        if (str.contains("0x") | str.contains("0X")) {
             str = str.replaceAll("0[xX]", "");
             return Integer.parseInt(str, 16);
         } else if (str.contains("0b") | str.contains("0B")) {
@@ -931,158 +896,189 @@ public final class ProgramCompiler {
     //endregion
 
     //region conditional compiler
-    public void openIf(boolean compilationEnable){
-        if(compilationEnabled.size()>1){
-            if(compilationEnabled.get(compilationEnabled.size()-1)!=ConditionalState.ASSEMBLING){//if not compile
+    public void openIf(boolean compilationEnable) {
+        if (compilationEnabled.size() > 1) {
+            if (compilationEnabled.get(compilationEnabled.size() - 1) != ConditionalState.ASSEMBLING) {//if not compile
                 compilationEnabled.add(ConditionalState.DISABLED);
                 return;
             }
         }
-        compilationEnabled.add(compilationEnable?ConditionalState.ASSEMBLING:ConditionalState.CHECKING);
+        compilationEnabled.add(compilationEnable ? ConditionalState.ASSEMBLING : ConditionalState.CHECKING);
     }
-    public void elseIf(boolean compilationEnable) throws InvalidConditionalAssembly,InvalidConditionalEvaluation {
+
+    public void elseIf(boolean compilationEnable) throws InvalidConditionalAssembly, InvalidConditionalEvaluation {
         if (compilationEnabled.size() <= 1) {
             throw new InvalidConditionalAssembly("Missing if opening statement!");
         }
         ConditionalState b = compilationEnabled.get(compilationEnabled.size() - 1);
         if (b == ConditionalState.CHECKING) {
-            compilationEnabled.set(compilationEnabled.size()-1,compilationEnable?ConditionalState.ASSEMBLING:ConditionalState.CHECKING);
+            compilationEnabled.set(compilationEnabled.size() - 1, compilationEnable ? ConditionalState.ASSEMBLING : ConditionalState.CHECKING);
         } else if (b == ConditionalState.ASSEMBLING) {
             compilationEnabled.set(compilationEnabled.size() - 1, ConditionalState.DISABLED);
-        }else{
+        } else {
             throw new InvalidConditionalEvaluation("Not ready to evaluate!");
         }
     }
+
     public void endIf() throws InvalidConditionalAssembly {
         if (compilationEnabled.size() <= 1) {
             throw new InvalidConditionalAssembly("Missing if opening statement!");
         }
-        compilationEnabled.remove(compilationEnabled.size()-1);
+        compilationEnabled.remove(compilationEnabled.size() - 1);
     }
-    public boolean isCompilationEnabled(){
-        return compilationEnabled.get(compilationEnabled.size()-1)==ConditionalState.ASSEMBLING;
+
+    public boolean isCompilationEnabled() {
+        return compilationEnabled.get(compilationEnabled.size() - 1) == ConditionalState.ASSEMBLING;
     }
-    public void setConditionalState(ConditionalState state){
-        compilationEnabled.set(compilationEnabled.size()-1,state);
+
+    public void setConditionalState(ConditionalState state) {
+        compilationEnabled.set(compilationEnabled.size() - 1, state);
     }
-    public int getDepth(){
+
+    public int getDepth() {
         return compilationEnabled.size();
+    }
+
+    public void resetConditionalState() {
+        compilationEnabled.clear();
+        compilationEnabled.add(ConditionalState.ASSEMBLING);
     }
     //endregion
 
     //region macro compiler
-    public void addMacro(String name) throws InvalidMacroStatement{
-        if(name==null || name.length()==0 || !name.matches(NAME_FORMAT)){
-            throw new InvalidMacroStatement("Invalid macro name specified! "+name);
+    public void addMacro(String name) throws InvalidMacroStatement {
+        if (name == null || name.length() == 0 || !name.matches(NAME_FORMAT)) {
+            throw new InvalidMacroStatement("Invalid macro name specified! " + name);
         }
-        macros.put(name,new ArrayList<>());
+        macros.put(name, new ArrayList<>());
         editingMacros.add(name);
     }
-    private void addToMacros(String line) throws InvalidMacroStatement{
-        if(line==null){
+
+    private void addToMacros(Line line) throws InvalidMacroStatement {
+        if (line == null) {
             throw new InvalidMacroStatement("Invalid macro line specified!");
         }
-        if(editingMacros.isEmpty()){
+        if (editingMacros.isEmpty()) {
             throw new InvalidMacroStatement("Is not editing any macros!");
         }
         editingMacros.forEach(s -> macros.get(s).add(line));
     }
-    public void finishMacro(String name) throws InvalidMacroStatement{
-        if (!editingMacros.contains(name)) {
-            throw new InvalidMacroStatement("Macro is not being edited! "+name);
+
+    public void finishMacro(String name) throws InvalidMacroStatement {
+        if (name == null || name.length() == 0) {
+            if (editingMacros.isEmpty()) {
+                throw new InvalidMacroStatement("Is not editing any macros!");
+            }
+            String[] list = editingMacros.toArray(new String[0]);
+            editingMacros.remove(list[list.length - 1]);
         }
-        editingMacros.remove(name);
+        if (!editingMacros.remove(name)) {
+            throw new InvalidMacroStatement("Macro is not being edited! " + name);
+        }
     }
-    public boolean isEditingMacros(){
-        return editingMacros.size()>0;
+
+    public boolean isEditingMacros() {
+        return editingMacros.size() > 0;
     }
-    private ArrayList<String> writeMacro(String name,String args) throws InvalidMacroStatement{
-        ArrayList<String> macro=macros.get(name);
-        if(macro==null){
-            throw new InvalidMacroStatement("Macro was never defined! "+name);
+
+    private void injectMacro(String macroName, String[] lastestArguments) throws CompilerException {
+        ArrayList<Line> macro = macros.get(macroName);
+        if (macro == null) {
+            throw new InvalidMacroStatement("Macro was never defined! " + macroName);
         }
-        String[] arg=splitExpressionsString(args);
-        for (int i = 0; i < arg.length; i++) {
-            arg[i]='('+arg[i]+')';
+        for (int i = 0; i < lastestArguments.length; i++) {
+            lastestArguments[i] = '(' + lastestArguments[i] + ')';
         }
-        ArrayList<String> newLines=new ArrayList<>();
-        ArrayList<String> labels=new ArrayList<>();
-        for(String s:macro) {
-            String label = getLabelOrPointerName(s);
-            if(label!=null){
+        ArrayList<String> labels = new ArrayList<>();
+        for (Line s : macro) {
+            String label = s.getLabelOrPointerName();
+            if (label != null) {
                 labels.add(label);
             }
         }
-        for(String s:macro){
-            String temp=s;
-            for(int i=arg.length-1;i>=0;i--){
-                temp=temp.replaceAll("@"+i+"(?:[^0-9].*)?",arg[i]);
+        ArrayList<Line> newLines = new ArrayList<>(macro.size());
+        for (Line s : macro) {
+            String temp = s.getLine();
+            for (int i = lastestArguments.length - 1; i >= 0; i--) {
+                temp = temp.replaceAll("@" + i + "(?:[^0-9].*)?", lastestArguments[i]);
             }
-            if(temp.contains("@")){
-                throw new InvalidMacroStatement("Cannot resolve all parameters! "+s+" "+currentLine);
+            if (temp.contains("@")) {
+                throw new InvalidMacroStatement("Cannot resolve all parameters! " + s + " " + currentLine);
             }
-            for(String l:labels){
-                s=s.replaceAll("(?:.*"+NAME_TERMINATOR+")?"+l+"(?:"+NAME_TERMINATOR+".*)?",l+"__MACRO__"+currentLine);
+            for (String l : labels) {
+                temp = temp.replaceAll("(?:.*" + NAME_TERMINATOR + ")?" + l + "(?:" + NAME_TERMINATOR + ".*)?", l + "___MACRO___" + currentLine);
             }
-            newLines.add(temp);
+            newLines.add(new Line(s.getIncludePath(), s.getIncludeName() + macroName + LINE_NUMBER_SEPARATOR_CHAR + currentLine + MACRO_SEPARATOR_CHAR, s.getLineNumber(), temp, isMacroListing()));
         }
-        return newLines;
+        lines.addAll(currentLine + 1, newLines);
+        offsetCurrentOrigin(newLines.size());
     }
-    private void injectMacro(String name,String args) throws InvalidMacroStatement{
-        ArrayList<String> macro=writeMacro(name,args);
-        int nextLine=currentLine+1;
 
-        ArrayList<Position> pos=new ArrayList<>();
-        ArrayList<Boolean> bools=new ArrayList<>();
-        for(int i=0;i<macro.size();i++){
-            pos.add(new Position(i,"@"+macro));
-            bools.add(false);
-        }
-        positions.addAll(nextLine,pos);
-        processedLines.addAll(nextLine,bools);
-        lines.addAll(nextLine,macro);
-    }
-    public boolean isMacroDefined(String name){
+    public boolean isMacroDefined(String name) {
         return macros.containsKey(name) && !editingMacros.contains(name);
     }
     //endregion
 
     //region listing
-    public void setListing(ListingMode mode) throws InvalidListingMode{
-        if(mode==null){
+    public void setCurrentListing(ListingMode mode) throws InvalidListingMode {
+        if (mode == null) {
             throw new InvalidListingMode("Listing mode cannot be null!");
         }
-        listing=mode;
+        currentListing = mode;
     }
-    public boolean isListing(){
-        return listing!=ListingMode.NO_LIST;
+
+    public ListingMode getCurrentListingMode() {
+        return currentListing;
     }
-    public boolean isMacroListing(){
-        return listing==ListingMode.LIST_MACRO;
+
+    public boolean isListing() {
+        return currentListing != ListingMode.NO_LIST;
+    }
+
+    public boolean isMacroListing() {
+        return currentListing == ListingMode.LIST_MACRO;
     }
     //endregion
 
     //region directive
-    public IDirective putDirective(String name,IDirective directive) throws InvalidDirective {
-        if(name==null || name.length()==0 || !name.matches(NAME_FORMAT)){
-            throw new InvalidDirective("Invalid directive name specified! "+name);
+    public IDirective putDirective(String name, IDirective directive) throws InvalidDirective {
+        if (name == null || name.length() == 0 || !name.matches(NAME_FORMAT)) {
+            throw new InvalidDirective("Invalid directive name specified! " + name);
         }
-        return instanceDirectives.put(name,directive);
+        return instanceDirectives.put(name, directive);
     }
-    public IDirective getDirective(String name) throws InvalidDirective {
-        if(name==null || name.length()==0 || !name.matches(NAME_FORMAT)){
-            throw new InvalidDirective("Invalid directive name specified! "+name);
+
+    public IDirective getDirective(Line line) throws InvalidDirective {
+        String name=line.getDirectiveName();
+        if (name == null || name.length() == 0 || !name.matches(NAME_FORMAT)) {
+            throw new InvalidDirective("Invalid directive name specified! " + name);
         }
-        IDirective directive= instanceDirectives.get(name);
-        if(directive!=null && (isCompilationEnabled() || directive.isUnskippable())){
-            return directive;
+        IDirective directive = instanceDirectives.get(name);
+        if (directive != null) {
+            if (line.isEnabled() || directive.isUnskippable()) {
+                return directive;
+            } else {
+                return null;
+            }
         }
-        directive=Directive.DEFINED_DIRECTIVES.get(name);
-        if(directive!=null && (isCompilationEnabled() || directive.isUnskippable())){
-            return directive;
+        directive = Directive.GLOBAL_DIRECTIVES.get(name);
+        if (directive != null) {
+            if (line.isEnabled() || directive.isUnskippable()) {
+                return directive;
+            } else {
+                return null;
+            }
         }
-        if(isCompilationEnabled() && directive==null){
-            throw new InvalidDirective("Directive is not defined! "+name);
+        directive = Directive.GLOBAL_DIRECTIVES.get(name.toUpperCase());
+        if (directive != null) {
+            if (line.isEnabled() || directive.isUnskippable()) {
+                return directive;
+            } else {
+                return null;
+            }
+        }
+        if (line.isEnabled()) {
+            throw new InvalidDirective("Directive is not defined! " + name);
         }
         return null;
     }

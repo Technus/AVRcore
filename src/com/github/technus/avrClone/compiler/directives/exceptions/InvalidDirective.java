@@ -1,4 +1,4 @@
-package com.github.technus.avrClone.compiler.directives;
+package com.github.technus.avrClone.compiler.directives.exceptions;
 
 import com.github.technus.avrClone.compiler.exceptions.CompilerException;
 

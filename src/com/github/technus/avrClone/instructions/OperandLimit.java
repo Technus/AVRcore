@@ -44,40 +44,43 @@ public class OperandLimit {
     D16=new OperandLimit(D32,0, 65535).setNameAndRegister("D16"),
 
     //Program offset
-    S16=new OperandLimit(true, null,-32768, 32767).setNameAndRegister("S16"),
-    S12=new OperandLimit(true,S16,-2048, 2047).setNameAndRegister("S12"),
-    S8=new OperandLimit(true, null,-128, 127).setNameAndRegister("S8"),
-    S7=new OperandLimit(true,S8,-64, 63).setNameAndRegister("S7"),
+    S16=new OperandLimit(true, null,-32768, 32767).setRelative().setNameAndRegister("S16"),
+    S12=new OperandLimit(true,S16,-2048, 2047).setRelative().setNameAndRegister("S12"),
+    S8=new OperandLimit(true, null,-128, 127).setRelative().setNameAndRegister("S8"),
+    S7=new OperandLimit(true,S8,-64, 63).setRelative().setNameAndRegister("S7"),
 
     //Program
     P32=new OperandLimit().setNameAndRegister("P32"),
-    P22=new OperandLimit(P32,0, 4194303).setNameAndRegister("P22");
+    P22=new OperandLimit(P32,0, 4194303).setNameAndRegister("P22"),
+
+    //FP
+    FP=new OperandLimit().setFP().setNameAndRegister("FP");
 
     private OperandLimit broader;
-    private boolean asOffset,intMaxMin;
+    private boolean asOffset,intMaxMin,floatingPointPreffered,relativePreffered;
     private TreeSet<Integer> possibleValues;
     private final int min, max;
     public String name="UNNAMED";
 
-    public OperandLimit() {//no limit
+    private OperandLimit() {//no limit
         min = Integer.MIN_VALUE;
         max = Integer.MAX_VALUE;
     }
 
-    public OperandLimit(int value) {
+    private OperandLimit(int value) {
         this(true, value, value);
     }
 
-    public OperandLimit(int min, int max) {
+    private OperandLimit(int min, int max) {
         this(true, min, max);
     }
 
-    public OperandLimit(int min, int max,boolean intMaxMin) {
+    private OperandLimit(int min, int max,boolean intMaxMin) {
         this(true, min, max);
         this.intMaxMin=intMaxMin;
     }
 
-    public OperandLimit(boolean generateOnly8,OperandLimit broader) {//no limit
+    private OperandLimit(boolean generateOnly8,OperandLimit broader) {//no limit
         possibleValues = new TreeSet<>();
         int limit = generateOnly8 ? 8 : 32;
         for (int i = 0; i < limit; i++) {
@@ -88,13 +91,13 @@ public class OperandLimit {
         max=possibleValues.last();
     }
 
-    public OperandLimit(boolean asOffset,OperandLimit broader,int min, int max) {
+    private OperandLimit(boolean asOffset,OperandLimit broader,int min, int max) {
         this(true, min, max);
         this.broader=broader;
         this.asOffset=asOffset;
     }
 
-    public OperandLimit(boolean limitOnly, int... possibleValues) {
+    private OperandLimit(boolean limitOnly, int... possibleValues) {
         if (limitOnly) {
             this.min = possibleValues[0];
             this.max = possibleValues[possibleValues.length - 1];
@@ -108,20 +111,30 @@ public class OperandLimit {
         }
     }
 
-    public OperandLimit(OperandLimit broader,int min, int max) {
+    private OperandLimit(OperandLimit broader,int min, int max) {
         this(true, min, max);
         this.broader=broader;
     }
 
-    public OperandLimit(OperandLimit broader,int min, int max,boolean intMaxMin) {
+    private OperandLimit(OperandLimit broader,int min, int max,boolean intMaxMin) {
         this(true, min, max);
         this.broader=broader;
         this.intMaxMin=intMaxMin;
     }
 
-    public OperandLimit(OperandLimit broader,boolean limitOnly, int... possibleValues) {
+    private OperandLimit(OperandLimit broader,boolean limitOnly, int... possibleValues) {
         this(limitOnly,possibleValues);
         this.broader=broader;
+    }
+
+    private OperandLimit setFP(){
+        floatingPointPreffered=true;
+        return this;
+    }
+
+    private OperandLimit setRelative(){
+        relativePreffered=true;
+        return this;
     }
 
     public int clamp(int value,int programCounter,boolean broader){
@@ -154,7 +167,7 @@ public class OperandLimit {
         return currentValue+diff;
     }
 
-    protected OperandLimit setNameAndRegister(String name){
+    private OperandLimit setNameAndRegister(String name){
         this.name=name;
         registry.add(this);
         return this;
@@ -180,5 +193,13 @@ public class OperandLimit {
 
     public OperandLimit getBroader() {
         return broader;
+    }
+
+    public boolean isFloatingPointPreffered() {
+        return floatingPointPreffered;
+    }
+
+    public boolean isRelativePreffered() {
+        return relativePreffered;
     }
 }

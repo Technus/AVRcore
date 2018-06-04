@@ -1,11 +1,15 @@
 package com.github.technus.avrCloneGui;
 
 import com.github.technus.avrClone.AvrCore;
+import com.github.technus.avrClone.compiler.Binding;
+import com.github.technus.avrClone.compiler.IncludeProcessor;
+import com.github.technus.avrClone.compiler.ProgramCompiler;
+import com.github.technus.avrClone.compiler.exceptions.InvalidInclude;
+import com.github.technus.avrClone.compiler.js.CompilerBindings;
 import com.github.technus.avrClone.instructions.ExecutionEvent;
 import com.github.technus.avrClone.instructions.I_Instruction;
 import com.github.technus.avrClone.instructions.InstructionRegistry;
 import com.github.technus.avrClone.instructions.OperandLimit;
-import com.github.technus.avrClone.memory.program.ProgramException;
 import com.github.technus.avrCloneGui.Editors.IntegerEditor;
 import com.github.technus.avrCloneGui.dataMemory.IRefreshDataMemoryView;
 import com.github.technus.avrCloneGui.dataMemory.cpuTable.CpuTableModel;
@@ -23,9 +27,15 @@ import jsyntaxpane.syntaxkits.AsmSyntaxKit;
 import javax.swing.*;
 import java.awt.*;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Map;
+
+import static com.github.technus.avrClone.compiler.IncludeProcessor.*;
 
 public class AvrTest {
     private JEditorPane asm;
@@ -60,15 +70,45 @@ public class AvrTest {
     private JTextPane limits;
 
     public final AvrCore core;
+    public final ProgramCompiler programCompiler;
 
     private final ArrayList<IRefreshDataMemoryView> dataTables=new ArrayList<>();
     private SpinnerNumberModel pcSpinner=new SpinnerNumberModel();
 
-    private Thread runner;
+    private Thread runner,compiler;
 
+    private String path=".";
 
-    public AvrTest(AvrCore core){
+    public AvrTest(AvrCore core,ProgramCompiler programCompiler) {
         this.core=core;
+        this.programCompiler=programCompiler;
+        IncludeProcessor DIRECT_INCLUDE_PROCESSOR = (parentIncludePath, includeName, includePath, systemDirectories, userDirectories, includedFilePaths) -> {
+            if (includeName.startsWith("\"") && includeName.endsWith("\"")) {
+                includeName = includeName.replaceFirst("^\"(.*)\"$", "$1");
+                try {
+                    return RELATIVE_FILE_SYSTEM_INCLUDE_PROCESSOR.include(parentIncludePath, includeName, includePath, systemDirectories, userDirectories, includedFilePaths);
+                } catch (InvalidInclude e) {
+                    return GLOBAL_FILE_SYSTEM_INCLUDE_PROCESSOR.include(parentIncludePath, includeName, includePath, systemDirectories, userDirectories, includedFilePaths);
+                }
+            } else if (includeName.startsWith("<") && includeName.endsWith(">")) {
+                includeName = includeName.replaceFirst("^<(.*)>$", "$1");
+                return SYSTEM_FILE_SYSTEM_INCLUDE_PROCESSOR.include(parentIncludePath, includeName, includePath, systemDirectories, userDirectories, includedFilePaths);
+            } else if (parentIncludePath.length() == 0) {
+                try {
+                    if (path.equals(includeName)) {
+                        ArrayList<String> lines = new ArrayList<>(Arrays.asList(asm.getText().split("\\r?\\n")));
+                        includedFilePaths.put(includePath, path);
+                        return lines;
+                    } else {
+                        return ABSOLUTE_FILE_SYSTEM_INCLUDE_PROCESSOR.include(parentIncludePath, includeName, includePath, systemDirectories, userDirectories, includedFilePaths);
+                    }
+                } catch (Exception e) {
+                    throw new InvalidInclude("Failed to read file! " + includeName, e);
+                }
+            }
+            throw new InvalidInclude("Invalid inclusion type! " + includeName);
+        };
+        this.programCompiler.sources.setCurrentIncludeProcessor(DIRECT_INCLUDE_PROCESSOR);
 
         pcSpinner.addChangeListener(e -> {
             Object v=programCounterSpinner.getValue();
@@ -107,7 +147,6 @@ public class AvrTest {
         program.setDefaultRenderer(Integer.class,programRenderer=new PresentationCellRenderer(program.getColumnCount(),Presentations.INT_DEC));
         program.setComponentPopupMenu(new ProgramTablePopup(this,program,programModel,programRenderer));
         program.getTableHeader().setFont(new Font("Consolas", Font.BOLD, 11));
-
 
         stepButton.addActionListener(e -> {
             try {
@@ -157,20 +196,51 @@ public class AvrTest {
             refreshRegistersDataPc();
         });
 
-        //LineNumbersRuler.enableASM(10);
         asm.setEditorKit(kit=new AsmSyntaxKit());
 
 
         JMenuItem item=new JMenuItem("Compile ASM");
         asm.getComponentPopupMenu().add(new JPopupMenu.Separator());
+        item.addActionListener(e -> compile());
+        asm.getComponentPopupMenu().add(item);
+        item=new JMenuItem("Load");
         item.addActionListener(e -> {
+            JFileChooser jfc=new JFileChooser(path);
+            jfc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+            jfc.setMultiSelectionEnabled(false);
+            jfc.showOpenDialog(asm);
+            File f=jfc.getSelectedFile();
+            path=f.getAbsolutePath();
             try {
-                core.setProgramMemoryString(asm.getText());
-                refreshProgramMemory();
-            }catch (ProgramException ex){
-                JOptionPane.showMessageDialog(asm, ex.getMessage(), "Compiler thrown "+ex.getClass().getSimpleName()+"!", JOptionPane.ERROR_MESSAGE);
+                asm.setText(new String(Files.readAllBytes(f.toPath())));
             }catch (Exception ex){
                 JOptionPane.showMessageDialog(asm, scrollThrowable(ex), "Compiler thrown "+ex.getClass().getSimpleName()+"!", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+        asm.getComponentPopupMenu().add(item);
+        item=new JMenuItem("Save");
+        item.addActionListener(e -> {
+            if(path!=null) {
+                File f = new File(path);
+                if(!f.isFile()){
+                    return;
+                }
+                try {
+                    Files.write(f.toPath(), asm.getText().getBytes());
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(asm, scrollThrowable(ex), "Compiler thrown " + ex.getClass().getSimpleName() + "!", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+        asm.getComponentPopupMenu().add(item);
+        item=new JMenuItem("Save as");
+        item.addActionListener(e -> {
+            JFileChooser jfc=new JFileChooser(path);
+            jfc.showSaveDialog(asm);
+            try {
+                Files.write(jfc.getSelectedFile().toPath(), asm.getText().getBytes());
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(asm, scrollThrowable(ex), "Compiler thrown " + ex.getClass().getSimpleName() + "!", JOptionPane.ERROR_MESSAGE);
             }
         });
         asm.getComponentPopupMenu().add(item);
@@ -189,6 +259,41 @@ public class AvrTest {
         refreshWithInstructionRegistry(core.getInstructionRegistry());
         refreshLimitsRegistry();
         refreshProgramMemory();
+    }
+
+    public void compile(){
+        if(compiler!=null){
+            compiler.interrupt();
+        }
+        compiler=new Thread(()->{
+            CompilerBindings compilerBindings=new CompilerBindings(64);
+            try {
+                for(Map.Entry<String,Integer> entry: core.getDataNames().entrySet()){
+                    compilerBindings.putBinding(entry.getKey(),new Binding(Binding.NameType.EQU,entry.getValue()));
+                }
+                for(Map.Entry<String,Integer> entry: core.getRegisterNames().entrySet()){
+                    compilerBindings.putBinding(entry.getKey(),new Binding(Binding.NameType.EQU,entry.getValue()));
+                }
+            }catch (Exception ex){
+                JOptionPane.showMessageDialog(asm, scrollThrowable(ex), "Compiler thrown "+ex.getClass().getSimpleName()+"!", JOptionPane.ERROR_MESSAGE);
+            }
+            try {
+                programCompiler.setCompilerBindings(compilerBindings);
+                programCompiler.compile(path);
+                StringBuilder stringBuilder=new StringBuilder();
+                for(String s:programCompiler.getDataCSEG()){
+                    stringBuilder.append(s).append("\n");
+                }
+                String program=stringBuilder.toString();
+                JOptionPane.showMessageDialog(asm,scrollable(program));
+                core.setProgramMemoryString(program);
+                refreshProgramMemory();
+            } catch (Exception ex){
+                JOptionPane.showMessageDialog(asm, scrollThrowable(ex), "Compiler thrown "+ex.getClass().getSimpleName()+"!", JOptionPane.ERROR_MESSAGE);
+            }
+
+        });
+        compiler.start();
     }
 
     public JFrame show(){
@@ -258,6 +363,7 @@ public class AvrTest {
         OutputStream outputStream=new ByteArrayOutputStream();
         PrintStream printStream=new PrintStream(outputStream);
         t.printStackTrace(printStream);
+        t.printStackTrace(System.err);
         try {
             printStream.flush();
             outputStream.flush();
@@ -275,9 +381,13 @@ public class AvrTest {
     }
 
     public static JScrollPane scrollThrowable(Throwable t){
+        return scrollable(printThrowable(t));
+    }
+
+    public static JScrollPane scrollable(String t){
         JTextArea area=new JTextArea();
         area.setEditable(false);
-        area.setText(printThrowable(t));
+        area.setText(t);
         JScrollPane pane=new JScrollPane(area);
         pane.setPreferredSize(new Dimension(700,500));
         return pane;

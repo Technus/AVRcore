@@ -10,6 +10,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import static com.github.technus.avrClone.compiler.Line.NAME_FORMAT;
+
 public class CompilerContext implements ScriptContext {
     private Writer writer,errorWriter;
     private Reader reader;
@@ -46,7 +48,6 @@ public class CompilerContext implements ScriptContext {
         }
     }
 
-    //no way of setting values
     @Override
     public void setAttribute(String name, Object value, int scope) {
         if(!checkName(name)){
@@ -63,12 +64,11 @@ public class CompilerContext implements ScriptContext {
     public Object getAttribute(String name, int scope) {
         switch (scope){
             case GLOBAL_SCOPE: return global.get(name);
-            case ENGINE_SCOPE: return bindings.getBinding(name);
+            case ENGINE_SCOPE: return bindings.get(name);
             default: return null;
         }
     }
 
-    //no way of removing values
     @Override
     public Object removeAttribute(String name, int scope) {
         switch (scope){
@@ -80,12 +80,11 @@ public class CompilerContext implements ScriptContext {
 
     @Override
     public Object getAttribute(String name) {
-        Object value=bindings.getBinding(name);
+        Object value=bindings.get(name);
         return value != null ? value : global.get(name);
     }
 
     @Override
-    @Deprecated
     public int getAttributesScope(String name) {
         if(bindings.containsKey(name)){
             return ENGINE_SCOPE;
@@ -144,7 +143,7 @@ public class CompilerContext implements ScriptContext {
     private boolean checkName(String name) {
         if(     name==null ||
                 name.isEmpty() ||
-                !name.replaceAll("[a-zA-Z_][0-9a-zA-Z_]*","").isEmpty()){
+                !name.matches(NAME_FORMAT)){
             return false;
         }
         return true;

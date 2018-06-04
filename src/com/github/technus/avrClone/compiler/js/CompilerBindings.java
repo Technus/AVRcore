@@ -5,7 +5,6 @@ import com.github.technus.avrClone.compiler.Binding;
 import javax.script.Bindings;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -22,133 +21,83 @@ public class CompilerBindings extends HashMap<String,Object> implements Bindings
         return null;
     }
 
+    @Override
+    public Object getOrDefault(Object key, Object defaultValue) {
+        Object v=get(key);
+        return v==null?defaultValue:v;
+    }
+
     public Binding getBinding(Object key) {
         return (Binding) super.get(key);
     }
 
     @Override
-    public Binding getOrDefault(Object key, Object defaultValue) {
-        if (defaultValue instanceof Number) {
-            defaultValue = new Binding(Binding.NameType.SET, ((Number) defaultValue).doubleValue());
-        }
-        if (defaultValue instanceof Binding) {
-            return (Binding) super.getOrDefault(key, defaultValue);
-        }
-        return null;
-    }
-
-    public boolean putCheck(String name,Object value){
-        //if (value instanceof Number) {
-        //    value = new Binding(Binding.NameType.SET, ((Number) value).doubleValue());
-        //}
-        if (value instanceof Binding) {
-            Binding old = getBinding(name);
-            if (old == null) {
-                super.put(name, value);
-                return true;
-            } else {
-                switch (old.type) {
-                    case SET:
-                    case DEF:{
-                        super.put(name, value);
-                        return true;
-                    }
-                }
-            }
-            return false;
-        }
-        return false;
-    }
-
-    @Override
-    public Binding put(String name, Object value) {
-        //if (value instanceof Number) {
-        //    value = new Binding(Binding.NameType.SET, ((Number) value).doubleValue());
-        //}
-        if (value instanceof Binding) {
-            Binding old = getBinding(name);
-            if (old == null) {
-                return (Binding) super.put(name, value);
-            } else {
-                switch (old.type) {
-                    case SET:
-                    case DEF:
-                        return (Binding) super.put(name, value);
-                }
-            }
-            return old;
-        }
+    @Deprecated
+    public Object put(String key, Object value) {
         return null;
     }
 
     @Override
+    @Deprecated
     public void putAll(Map<? extends String, ?> toMerge) {
-        toMerge.forEach((BiConsumer<String, Object>) this::put);
+        throw new NoSuchMethodError();
     }
 
     @Override
+    @Deprecated
+    public Binding putIfAbsent(String key, Object value) {
+        throw new NoSuchMethodError();
+    }
+
+    public Binding putBinding(String name, Binding value) {
+        return (Binding) super.put(name,value);
+    }
+
+    public void putAllBindings(Map<String,Binding> toMerge) {
+        super.putAll(toMerge);
+    }
+
+    @Override
+    @Deprecated
+    public boolean replace(String key, Object oldValue, Object newValue) {
+        throw new NoSuchMethodError();
+    }
+
+    @Override
+    @Deprecated
+    public Binding replace(String key, Object value) {
+        throw new NoSuchMethodError();
+    }
+
+    @Override
+    @Deprecated
     public void replaceAll(BiFunction<? super String, ? super Object, ?> function) {
         throw new NoSuchMethodError();
     }
 
     @Override
+    @Deprecated
     public Binding merge(String key, Object value, BiFunction<? super Object, ? super Object, ?> remappingFunction) {
         throw new NoSuchMethodError();
     }
 
     @Override
-    public Binding putIfAbsent(String key, Object value) {
-        //if (value instanceof Number) {
-        //    value = new Binding(Binding.NameType.SET, ((Number) value).doubleValue());
-        //}
-        if (value instanceof Binding) {
-            return (Binding) super.putIfAbsent(key, value);
-        }
-        return null;
-    }
-
-    @Override
+    @Deprecated
     public boolean remove(Object key, Object value) {
-        if (value instanceof Number) {
-            value = new Binding(Binding.NameType.SET, ((Number) value).doubleValue());
-        }
-        if (value instanceof Binding) {
-            switch (((Binding) value).type) {
-                case DEF:
-                case SET:
-                    return super.remove(key, value);
-            }
-        }
-        return false;
+        throw new NoSuchMethodError();
     }
 
     @Override
+    @Deprecated
     public Binding remove(Object key) {
-        Binding binding = getBinding(key);
-        if (binding == null) {
-            return null;
-        }
-        switch (binding.type) {
-            case SET:
-            case DEF:
-                return (Binding) super.remove(key);
-        }
         return null;
     }
 
-    public Binding removeDef(Object key) {
-        Binding binding = getBinding(key);
-        if (binding == null) {
-            return null;
-        }
-        switch (binding.type) {
-            case DEF:
-                return (Binding) super.remove(key);
-        }
-        return null;
+    public Binding removeBinding(String key) {
+        return (Binding) super.remove(key);
     }
 
-    public Binding removeAllUnsafely(Binding.NameType... type) {
+    public Binding removeAllBindings(Binding.NameType... type) {
         nextKey:
         for(String key:keySet().toArray(new String[0])){
             Binding v= getBinding(key);
@@ -163,52 +112,16 @@ public class CompilerBindings extends HashMap<String,Object> implements Bindings
     }
 
     @Override
-    public boolean replace(String key, Object oldValue, Object newValue) {
-        if (oldValue instanceof Number) {
-            oldValue = new Binding(Binding.NameType.SET, ((Number) oldValue).doubleValue());
-        }
-        if (newValue instanceof Number) {
-            newValue = new Binding(Binding.NameType.SET, ((Number) newValue).doubleValue());
-        }
-        if (oldValue instanceof Binding && newValue instanceof Binding) {
-            switch (((Binding) oldValue).type) {
-                case DEF:
-                case SET:
-                    return super.replace(key, oldValue, newValue);
-            }
-        }
-        return false;
-    }
-
-    @Override
-    public Binding replace(String key, Object value) {
-        Binding binding = getBinding(key);
-        if (value instanceof Number) {
-            value = new Binding(Binding.NameType.SET, ((Number) value).doubleValue());
-        }
-        if (value instanceof Binding) {
-            if(binding==null){
-                return null;
-            }else {
-                switch (binding.type) {
-                    case SET:
-                    case DEF:
-                        return (Binding) super.replace(key, value);
-                }
-            }
-        }
-        return null;
-    }
-
-    @Override
+    @Deprecated
     public boolean containsValue(Object value) {
-        if (value instanceof Number) {
-            value = new Binding(Binding.NameType.SET, ((Number) value).doubleValue());
-        }
-        return super.containsValue(value);
+        throw new NoSuchMethodError();
     }
 
-    public boolean containsNotDefs(String... keys) {
+    public boolean containsBinding(Binding binding){
+        return super.containsValue(binding);
+    }
+
+    public boolean containsNotDefinitions(String... keys) {
         for(Object key:keys){
             if(!containsKey(key) || getBinding(key).type==Binding.NameType.DEF){
                 return false;
@@ -217,7 +130,7 @@ public class CompilerBindings extends HashMap<String,Object> implements Bindings
         return true;
     }
 
-    public boolean lacksNotDefs(String... keys) {
+    public boolean lacksNotDefinitions(String... keys) {
         for(Object key:keys){
             if(containsKey(key) && getBinding(key).type!=Binding.NameType.DEF){
                 return false;
@@ -227,11 +140,13 @@ public class CompilerBindings extends HashMap<String,Object> implements Bindings
     }
 
     @Override
+    @Deprecated
     public Object computeIfAbsent(String key, Function<? super String, ?> mappingFunction) {
         throw new NoSuchMethodError();
     }
 
     @Override
+    @Deprecated
     public Object computeIfPresent(String key, BiFunction<? super String, ? super Object, ?> remappingFunction) {
         throw new NoSuchMethodError();
     }

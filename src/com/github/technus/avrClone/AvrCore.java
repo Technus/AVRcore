@@ -11,6 +11,7 @@ import com.github.technus.avrClone.registerPackages.I_RegisterPackage;
 import com.github.technus.avrClone.registerPackages.RegisterFilePairs;
 import com.github.technus.avrClone.registerPackages.RegisterFileSingles;
 
+import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Map;
@@ -253,6 +254,11 @@ public class AvrCore {
     //endregion
 
     //region programMemory
+    public void setProgramMemoryArrayList(ArrayList<String> lines) throws Exception {
+        this.programMemory = new ProgramMemory(this, lines);
+        checkValid();
+    }
+
     public void setProgramMemoryString(String lines) throws Exception {
         this.programMemory = new ProgramMemory(this, lines.split("\\n"));
         checkValid();
@@ -339,6 +345,51 @@ public class AvrCore {
             }
         }
         return null;
+    }
+
+    public HashMap<String,Integer> getDataNames(){
+        HashMap<String,Integer> map=new HashMap<>();
+        for(int i=0;i>=0;i=accessibleMemory.nextSetBit(i)){
+            String name=getDataName(i);
+            if(name!=null) {
+                map.put(name, i);
+            }
+            i++;
+        }
+        return map;
+    }
+
+    public HashMap<String,Integer> getRegisterNames(){
+        HashMap<String,Integer> map=new HashMap<>();
+        for(int i=0;i<registerFile.length;i++){
+            map.put("R"+i,i);
+            map.put("r"+i,i);
+        }
+        map.put("X",RegisterFilePairs.X.offset);
+        map.put("x",RegisterFilePairs.X.offset);
+        map.put("Y",RegisterFilePairs.Y.offset);
+        map.put("y",RegisterFilePairs.Y.offset);
+        map.put("Z",RegisterFilePairs.Z.offset);
+        map.put("z",RegisterFilePairs.Z.offset);
+        map.put("W",RegisterFilePairs.W.offset);
+        map.put("w",RegisterFilePairs.W.offset);
+        map.put("Xl",RegisterFileSingles.Xl.offset);
+        map.put("xl",RegisterFileSingles.Xl.offset);
+        map.put("Yl",RegisterFileSingles.Yl.offset);
+        map.put("yl",RegisterFileSingles.Yl.offset);
+        map.put("Zl",RegisterFileSingles.Zl.offset);
+        map.put("zl",RegisterFileSingles.Zl.offset);
+        map.put("Wl",RegisterFileSingles.Wl.offset);
+        map.put("wl",RegisterFileSingles.Wl.offset);
+        map.put("Xh",RegisterFileSingles.Xh.offset);
+        map.put("xh",RegisterFileSingles.Xh.offset);
+        map.put("Yh",RegisterFileSingles.Yh.offset);
+        map.put("yh",RegisterFileSingles.Yh.offset);
+        map.put("Zh",RegisterFileSingles.Zh.offset);
+        map.put("zh",RegisterFileSingles.Zh.offset);
+        map.put("Wh",RegisterFileSingles.Wh.offset);
+        map.put("wh",RegisterFileSingles.Wh.offset);
+        return map;
     }
 
     public boolean putRegistersBindings(I_RegisterPackage registerPackage) {
