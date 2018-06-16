@@ -11,10 +11,7 @@ import com.github.technus.avrClone.registerPackages.I_RegisterPackage;
 import com.github.technus.avrClone.registerPackages.RegisterFilePairs;
 import com.github.technus.avrClone.registerPackages.RegisterFileSingles;
 
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class AvrCore {
     private volatile boolean valid=false;
@@ -43,8 +40,7 @@ public class AvrCore {
     private HashMap<String, I_RegisterPackage> packages = new HashMap<>();
     public HashMap<String, I_RegisterPackage> packagesBackup = new HashMap<>();
 
-    private int lastVector=-1;//reset is default value
-    private I_Interrupt[] interrupts = new I_Interrupt[256];
+    private TreeMap<Integer,I_Interrupt> interrupts = new TreeMap<>();
 
     public AvrCore(InstructionRegistry instructionRegistry, boolean immersiveOperands) {
         setUsingImmersiveOperands(immersiveOperands);
@@ -402,17 +398,14 @@ public class AvrCore {
 
     public boolean putRegistersBindings(I_RegisterPackage registerPackage, String name) {
         if(accessibleMemory.get(registerPackage.getOffset(),registerPackage.getOffset()+registerPackage.getSize()).isEmpty()) {
-            if(registerPackage.interrupts()!=null) {
-                for (Integer key : registerPackage.interrupts().keySet()) {
-                    int k = key;
-                    if (interrupts[k] != null || !accessibleMemory.get(k)) {
+            TreeMap<Integer,I_Interrupt> i=registerPackage.interrupts();
+            if(i!=null) {
+                for (Integer key : i.keySet()) {
+                    if(interrupts.containsKey(key)){
                         return false;
                     }
                 }
-                lastVector=Math.max(registerPackage.interrupts().lastKey(),lastVector);
-                for (Map.Entry<Integer,I_Interrupt> entry:registerPackage.interrupts().entrySet()) {
-                    interrupts[entry.getKey()]=entry.getValue();
-                }
+                interrupts.putAll(i);
             }
             packages.put(name,registerPackage);
             accessibleMemory.set(registerPackage.getOffset(), registerPackage.getOffset() + registerPackage.getSize());
@@ -434,17 +427,11 @@ public class AvrCore {
 
     public boolean removeRegistersBindings(I_RegisterPackage registerPackage,String name){
         if(packages.containsKey(name)) {
-            if(registerPackage.interrupts()!=null) {
-                for (Integer key : registerPackage.interrupts().keySet()) {
-                    interrupts[key] = null;
+            TreeMap<Integer,I_Interrupt> i=registerPackage.interrupts();
+            if(i!=null) {
+                for (Integer key : i.keySet()) {
+                    interrupts.remove(key);
                 }
-                int lastNotNull = -1;
-                for (int i = 0; i < lastVector; i++) {
-                    if (interrupts[i] != null) {
-                        lastNotNull = i;
-                    }
-                }
-                lastVector=lastNotNull;
             }
             packages.remove(name);
             accessibleMemory.clear(registerPackage.getOffset(), registerPackage.getOffset() + registerPackage.getSize());
@@ -738,15 +725,14 @@ public class AvrCore {
 
     //region interrupt handling
     private void clearInterruptsConfiguration(){
-        lastVector=-1;
-        interrupts=new I_Interrupt[interrupts.length];
+        interrupts.clear();
     }
 
     public void handleInterrupts(){
-        for(int i=0;i<=lastVector;i++) {
-            if (interrupts[i]!=null && interrupts[i].tryInterrupt(this)) {//if cool and good
+        for(I_Interrupt interrupt:interrupts.values()) {
+            if (interrupt.tryInterrupt(this)) {//if cool and good
                 pushValue(programCounter);
-                programCounter = interrupts[i].getVector();
+                programCounter = interrupt.getVector();
                 dataMemory[cpuRegisters.SREG] &= CPU_Registers._I;
             }
         }
@@ -758,12 +744,5 @@ public class AvrCore {
             handleInterrupts();
         }
         return instructionRegistry.getInstruction(getInstructionID()).execute(this);
-    }
-
-    public ExecutionEvent cpuCycle(int atPC,I_Instruction instruction) throws IndexOutOfBoundsException,NullPointerException{
-        if((dataMemory[cpuRegisters.SREG] & CPU_Registers.I) != 0) {
-            handleInterrupts();
-        }
-        return instruction.execute(this);
     }
 }

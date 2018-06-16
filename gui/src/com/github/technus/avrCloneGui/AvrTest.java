@@ -1,5 +1,6 @@
 package com.github.technus.avrCloneGui;
 
+import com.bulenkov.darcula.ui.DarculaTabbedPaneUI;
 import com.github.technus.avrClone.AvrCore;
 import com.github.technus.avrClone.compiler.Binding;
 import com.github.technus.avrClone.compiler.IncludeProcessor;
@@ -68,6 +69,10 @@ public class AvrTest {
     private JComboBox<InstructionRegistry> registry;
     private JTextPane instructions;
     private JTextPane limits;
+    private JTabbedPane tabbedPane1;
+    private JTextPane csegData;
+    private JTextPane dsegData;
+    private JTextPane esegData;
 
     public final AvrCore core;
     public final ProgramCompiler programCompiler;
@@ -109,6 +114,14 @@ public class AvrTest {
             throw new InvalidInclude("Invalid inclusion type! " + includeName);
         };
         this.programCompiler.sources.setCurrentIncludeProcessor(DIRECT_INCLUDE_PROCESSOR);
+
+        tabbedPane1.setUI(new DarculaTabbedPaneUI() {
+            @Override
+            protected int calculateTabHeight(int tabPlacement, int tabIndex,
+                                             int fontHeight) {
+                return 21;
+            }
+        });
 
         pcSpinner.addChangeListener(e -> {
             Object v=programCounterSpinner.getValue();
@@ -280,13 +293,33 @@ public class AvrTest {
             try {
                 programCompiler.setCompilerBindings(compilerBindings);
                 programCompiler.compile(path);
+
                 StringBuilder stringBuilder=new StringBuilder();
                 for(String s:programCompiler.getDataCSEG()){
+                    stringBuilder.append(s).append("\n");
+                }
+                csegData.setText(stringBuilder.toString());
+
+                stringBuilder=new StringBuilder();
+                for(String s:programCompiler.getDataDSEG()){
+                    stringBuilder.append(s).append("\n");
+                }
+                dsegData.setText(stringBuilder.toString());
+
+                stringBuilder=new StringBuilder();
+                for(String s:programCompiler.getDataESEG()){
+                    stringBuilder.append(s).append("\n");
+                }
+                esegData.setText(stringBuilder.toString());
+
+                stringBuilder=new StringBuilder();
+                for(String s:programCompiler.getProgram()){
                     stringBuilder.append(s).append("\n");
                 }
                 String program=stringBuilder.toString();
                 JOptionPane.showMessageDialog(asm,scrollable(program));
                 core.setProgramMemoryString(program);
+
                 refreshProgramMemory();
             } catch (Exception ex){
                 JOptionPane.showMessageDialog(asm, scrollThrowable(ex), "Compiler thrown "+ex.getClass().getSimpleName()+"!", JOptionPane.ERROR_MESSAGE);

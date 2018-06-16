@@ -351,17 +351,24 @@ public class ProgramCompiler {
     public TreeMap<Integer,String> getMadeFile() {
         return madeFile;
     }
-    
+
+    public ArrayList<String> getProgram(){
+        ArrayList<String> cseg=new ArrayList<>(madeFile.size());
+        for (int i = 0,len=madeFile.size(); i < len; i++) {
+            cseg.add("");
+        }
+        for(Map.Entry<Integer,String> entry:madeFile.entrySet()){
+            cseg.set(entry.getKey(),entry.getValue());
+        }
+        return cseg;
+    }
     public ArrayList<String> getDataCSEG(){
-        ArrayList<String> cseg=new ArrayList<>(Math.max(madeFile.size(),getMemorySize(Segment.CSEG)));
-        for (int i = 0,len=Math.max(madeFile.size(), getMemorySize(Segment.CSEG)); i < len; i++) {
+        ArrayList<String> cseg=new ArrayList<>(getMemorySize(Segment.CSEG));
+        for (int i = 0,len=getMemorySize(Segment.CSEG); i < len; i++) {
             cseg.add("");
         }
         for(Map.Entry<Integer,Integer> entry:constants[Segment.CSEG.ordinal()].entrySet()){
             cseg.set(entry.getKey(),entry.getValue().toString());
-        }
-        for(Map.Entry<Integer,String> entry:madeFile.entrySet()){
-            cseg.set(entry.getKey(),entry.getValue());
         }
         return cseg;
     }

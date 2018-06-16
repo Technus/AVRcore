@@ -209,36 +209,84 @@
                                     <properties>
                                       <background color="-13948117"/>
                                       <font name="Consolas" size="11"/>
-                                      <preferredSize width="600" height="20"/>
+                                      <preferredSize width="368" height="20"/>
                                       <selectionColor color="-14597501"/>
                                       <toolTipText value="Asm editor"/>
                                     </properties>
                                   </component>
                                 </children>
                               </scrollpane>
-                              <scrollpane id="b7b82">
+                              <tabbedpane id="413eb" binding="tabbedPane1" default-binding="true">
                                 <constraints>
                                   <splitpane position="right"/>
                                 </constraints>
-                                <properties>
-                                  <font name="Consolas" size="11"/>
-                                  <preferredSize width="300" height="419"/>
-                                </properties>
+                                <properties/>
                                 <border type="none"/>
                                 <children>
-                                  <component id="a2527" class="javax.swing.JTable" binding="program">
-                                    <constraints/>
+                                  <scrollpane id="b7b82">
+                                    <constraints>
+                                      <tabbedpane title="Program"/>
+                                    </constraints>
                                     <properties>
-                                      <autoCreateColumnsFromModel value="true"/>
-                                      <autoCreateRowSorter value="true"/>
-                                      <cellSelectionEnabled value="true"/>
-                                      <fillsViewportHeight value="true"/>
                                       <font name="Consolas" size="11"/>
-                                      <toolTipText value="Program memory"/>
+                                      <preferredSize width="300" height="419"/>
                                     </properties>
-                                  </component>
+                                    <border type="none"/>
+                                    <children>
+                                      <component id="a2527" class="javax.swing.JTable" binding="program">
+                                        <constraints/>
+                                        <properties>
+                                          <autoCreateColumnsFromModel value="true"/>
+                                          <autoCreateRowSorter value="true"/>
+                                          <cellSelectionEnabled value="true"/>
+                                          <fillsViewportHeight value="true"/>
+                                          <font name="Consolas" size="11"/>
+                                          <toolTipText value="Program memory"/>
+                                        </properties>
+                                      </component>
+                                    </children>
+                                  </scrollpane>
+                                  <scrollpane id="73e8f">
+                                    <constraints>
+                                      <tabbedpane title="CSEG"/>
+                                    </constraints>
+                                    <properties/>
+                                    <border type="none"/>
+                                    <children>
+                                      <component id="b3e39" class="javax.swing.JTextPane" binding="csegData">
+                                        <constraints/>
+                                        <properties/>
+                                      </component>
+                                    </children>
+                                  </scrollpane>
+                                  <scrollpane id="7eb90">
+                                    <constraints>
+                                      <tabbedpane title="DSEG"/>
+                                    </constraints>
+                                    <properties/>
+                                    <border type="none"/>
+                                    <children>
+                                      <component id="82951" class="javax.swing.JTextPane" binding="dsegData">
+                                        <constraints/>
+                                        <properties/>
+                                      </component>
+                                    </children>
+                                  </scrollpane>
+                                  <scrollpane id="f5e8f">
+                                    <constraints>
+                                      <tabbedpane title="ESEG"/>
+                                    </constraints>
+                                    <properties/>
+                                    <border type="none"/>
+                                    <children>
+                                      <component id="a539f" class="javax.swing.JTextPane" binding="esegData">
+                                        <constraints/>
+                                        <properties/>
+                                      </component>
+                                    </children>
+                                  </scrollpane>
                                 </children>
-                              </scrollpane>
+                              </tabbedpane>
                             </children>
                           </splitpane>
                         </children>
