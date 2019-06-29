@@ -25,7 +25,7 @@ public interface I_Instruction {
      * @param core
      */
     ExecutionEvent execute(AvrCore core);
-    int getClockCycles(AvrCore core);
+    int getCost(AvrCore core);
     boolean isImmersive();
     int getOperandCount();
 

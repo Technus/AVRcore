@@ -79,16 +79,16 @@ public class ProgramCompiler {
         currentSegment = Segment.CSEG;
         currentListing = ListingMode.LIST;
 
-        startOffset = new int[Segment.values().length];
-        origins = new int[Segment.values().length];
+        startOffset = new int[Segment.count()];
+        origins = new int[Segment.count()];
 
-        overlap = new boolean[Segment.values().length];
+        overlap = new boolean[Segment.count()];
 
-        constants = new HashMap[Segment.values().length];
+        constants = new HashMap[Segment.count()];
         for (int i = 0; i < constants.length; i++) {
             constants[i] = new HashMap<>();
         }
-        constantRanges = new BitSet[Segment.values().length];
+        constantRanges = new BitSet[Segment.count()];
         for (int i = 0; i < constantRanges.length; i++) {
             constantRanges[i] = new BitSet(4096);
         }
@@ -127,9 +127,9 @@ public class ProgramCompiler {
         setCurrentListing(ListingMode.LIST);
         setCurrentSegment(Segment.CSEG);
         Segment[] segments = Segment.values();
-        for (int i = 0; i < segments.length; i++) {
-            setOrigin(0, segments[i]);
-            setOverlap(false, segments[i]);
+        for (Segment segment : segments) {
+            setOrigin(0, segment);
+            setOverlap(false, segment);
         }
         compilerBindings.removeAllBindings(Binding.NameType.DEF);
     }
@@ -161,22 +161,7 @@ public class ProgramCompiler {
 
                         if (lineObj.getDirectiveName() != null) {
                             IDirective directive = getDirective(lineObj);
-                            if (directive == null) {
-                                lineObj.setProcessed(true);
-                                didSomething=true;
-                            } else {
-                                try {
-                                    directive.process(this, lineObj);
-                                    if (!directive.isRepeatable()) {
-                                        lineObj.setProcessed(true);
-                                        didSomething = true;
-                                    }
-                                } catch (EvaluationException e){
-                                    if (directive.cannotFail()) {
-                                        throw new EvaluationException("Directive failed! " + lineObj.getLine(), e);
-                                    }
-                                }
-                            }
+                            didSomething = processDirectiveInternal(didSomething, lineObj, directive);
                         } else if (lineObj.getMnemonic() != null) {
                             if (currentSegment != Segment.CSEG) {
                                 throw new CompilerException("Invalid mnemonic use! " + lineObj.getLine());
@@ -292,22 +277,7 @@ public class ProgramCompiler {
                     if (!lineObj.isProcessed()) {
                         if (lineObj.getDirectiveName() != null) {
                             IDirective directive = getDirective(lineObj);
-                            if (directive == null) {
-                                lineObj.setProcessed(true);
-                                didSomething=true;
-                            } else {
-                                try {
-                                    directive.process(this, lineObj);
-                                    if (!directive.isRepeatable()) {
-                                        lineObj.setProcessed(true);
-                                        didSomething = true;
-                                    }
-                                } catch (EvaluationException e) {
-                                    if (directive.cannotFail()) {
-                                        throw new EvaluationException("Directive failed! " + lineObj.getLine(), e);
-                                    }
-                                }
-                            }
+                            didSomething = processDirectiveInternal(didSomething, lineObj, directive);
                         } else if (lineObj.getMnemonic() != null && lineObj.isEnabled()) {
                             if (currentSegment != Segment.CSEG) {
                                 throw new CompilerException("Invalid mnemonic use! " + lineObj.getLine());
@@ -346,6 +316,26 @@ public class ProgramCompiler {
             throw new InterruptedException("INTERUPTED!");
         }
         madeFile = new TreeMap<>(made);
+    }
+
+    private boolean processDirectiveInternal(boolean didSomething, Line lineObj, IDirective directive) throws CompilerException {
+        if (directive == null) {
+            lineObj.setProcessed(true);
+            didSomething=true;
+        } else {
+            try {
+                directive.process(this, lineObj);
+                if (!directive.isRepeatable()) {
+                    lineObj.setProcessed(true);
+                    didSomething = true;
+                }
+            } catch (EvaluationException e){
+                if (directive.cannotFail()) {
+                    throw new EvaluationException("Directive failed! " + lineObj.getLine(), e);
+                }
+            }
+        }
+        return didSomething;
     }
 
     public TreeMap<Integer,String> getMadeFile() {
@@ -583,11 +573,11 @@ public class ProgramCompiler {
 
     //region constants
     public void putConstant(int constant) throws InvalidOrigin, InvalidMemoryAllocation, InvalidBinding {
-        if (currentSegment == Segment.DSEG) {
+        if (!currentSegment.isAllowingConstants()) {
             throw new InvalidMemoryAllocation("Cannot store constants in volatile memory! " + constant);
         }
         if (getCurrentOverlap() || isCurrentMemoryCellFree()) {
-            int segment = currentSegment.ordinal();//todo add labeling from labels to assign, todo add temp binding
+            int segment = currentSegment.ordinal();
             int origin = getCurrentOrigin();
             int offset = getCurrentSegmentOffset();
             for (String s : getLabelsOrPointersNames()) {
@@ -602,7 +592,7 @@ public class ProgramCompiler {
     }
 
     public void putConstant(float constant) throws InvalidOrigin, InvalidMemoryAllocation, InvalidBinding {
-        if (currentSegment == Segment.DSEG) {
+        if (!currentSegment.isAllowingConstants()) {
             throw new InvalidMemoryAllocation("Cannot store constants in volatile memory! " + constant);
         }
         int segment = currentSegment.ordinal();
@@ -621,7 +611,7 @@ public class ProgramCompiler {
     }
 
     public void putConstant(long constant) throws InvalidOrigin, InvalidMemoryAccess, InvalidMemoryAllocation, InvalidBinding {
-        if (currentSegment == Segment.DSEG) {
+        if (!currentSegment.isAllowingConstants()) {
             throw new InvalidMemoryAllocation("Cannot store constants in volatile memory! " + constant);
         }
         if (getCurrentOverlap() || isCurrentMemoryBlockFree(2)) {
@@ -641,7 +631,7 @@ public class ProgramCompiler {
     }
 
     public void putConstant(String constant) throws InvalidOrigin, InvalidMemoryAccess, InvalidMemoryAllocation, InvalidConstant, InvalidBinding {
-        if (currentSegment == Segment.DSEG) {
+        if (!currentSegment.isAllowingConstants()) {
             throw new InvalidMemoryAllocation("Cannot store constants in volatile memory! " + constant);
         }
         if (constant == null) {
@@ -669,7 +659,7 @@ public class ProgramCompiler {
     }
 
     public void reserveMemory(int cellCount) throws InvalidOrigin, InvalidMemoryAccess, InvalidMemoryAllocation, InvalidBinding {
-        if (currentSegment == Segment.CSEG) {
+        if (!currentSegment.isAllowingVariables()) {
             throw new InvalidMemoryAllocation("Cannot store variables in program memory! " + cellCount);
         }
         if (cellCount <= 0) {
