@@ -48,7 +48,17 @@ public class ProgramMemory implements Cloneable{
         param1 =new int[size];
     }
 
-    private ProgramMemory(InstructionRegistry registry,int size){
+    public ProgramMemory(int[] instructions, int[] param0, int[] param1, InstructionRegistry registry) {
+        this.instructions = instructions;
+        this.param0 = param0;
+        this.param1 = param1;
+        this.registry = registry;
+        if(instructions.length!=param0.length||instructions.length!=param1.length){
+            throw new RuntimeException("Invalid lenght of arrays!");
+        }
+    }
+
+    private ProgramMemory(InstructionRegistry registry, int size){
         this.registry=registry;
         instructions=new int[size];
         param0 =new int[size];

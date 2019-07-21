@@ -1,5 +1,29 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="ArtifactManager">
+    <artifact type="jar" name="AVRcore:jar">
+      <output-path>$PROJECT_DIR$/out/artifacts/AVRcore_jar</output-path>
+      <root id="archive" name="AVRcore.jar">
+        <element id="module-output" name="AVRcore" />
+      </root>
+    </artifact>
+  </component>
+  <component name="CompilerConfiguration">
+    <wildcardResourcePatterns>
+      <entry name="!?*.java" />
+      <entry name="!?*.form" />
+      <entry name="!?*.class" />
+      <entry name="!?*.groovy" />
+      <entry name="!?*.scala" />
+      <entry name="!?*.flex" />
+      <entry name="!?*.kt" />
+      <entry name="!?*.clj" />
+      <entry name="!?*.aj" />
+      <entry name="!*.mps" />
+      <entry name="!*.mpsr" />
+      <entry name="!*.model" />
+    </wildcardResourcePatterns>
+  </component>
   <component name="GradleLocalSettings">
     <option name="modificationStamps">
       <map>
@@ -142,7 +166,8 @@
   </component>
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/AVRcore.iml" filepath="$PROJECT_DIR$/AVRcore.iml" />
+      <module fileurl="file://$PROJECT_DIR$/src/AVRcore.iml" filepath="$PROJECT_DIR$/src/AVRcore.iml" />
+      <module fileurl="file://$PROJECT_DIR$/gui/gui.iml" filepath="$PROJECT_DIR$/gui/gui.iml" />
     </modules>
   </component>
   <component name="ProjectRootManager" version="2" languageLevel="JDK_1_8" default="true" project-jdk-name="1.8" project-jdk-type="JavaSDK">

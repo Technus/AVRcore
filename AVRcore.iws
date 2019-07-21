@@ -1,13 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="ArtifactsWorkspaceSettings">
+    <artifacts-to-build>
+      <artifact name="AVRcore:jar" />
+    </artifacts-to-build>
+  </component>
   <component name="ChangeListManager">
     <list default="true" id="936e6fac-acc1-4a37-baee-dc42b8d522c5" name="Default" comment="">
+      <change beforePath="$PROJECT_DIR$/AVRcore.ipr" beforeDir="false" afterPath="$PROJECT_DIR$/AVRcore.ipr" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/AVRcore.iws" beforeDir="false" afterPath="$PROJECT_DIR$/AVRcore.iws" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/ProgramCompiler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/ProgramCompiler.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/gui/gui.iml" beforeDir="false" afterPath="$PROJECT_DIR$/gui/gui.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/com/github/technus/avrClone/memory/program/ProgramMemory.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/com/github/technus/avrClone/memory/program/ProgramMemory.java" afterDir="false" />
     </list>
     <ignored path="$PROJECT_DIR$/out/" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
-    <option name="TRACKING_ENABLED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -16,122 +22,64 @@
   <component name="CreatePatchCommitExecutor">
     <option name="PATCH_PATH" value="" />
   </component>
+  <component name="DefaultGradleProjectSettings">
+    <option name="isMigrated" value="true" />
+  </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="ProgramCompiler.java" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/ProgramCompiler.java">
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/AvrCore.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="580">
-              <caret line="205" column="83" lean-forward="true" selection-start-line="205" selection-start-column="83" selection-end-line="205" selection-end-column="83" />
+            <state relative-caret-position="155">
+              <caret line="21" column="20" selection-start-line="21" selection-start-column="20" selection-end-line="21" selection-end-column="20" />
               <folding>
                 <element signature="imports" expanded="true" />
-                <element signature="e#38024#38025#0" expanded="true" />
-                <element signature="e#38072#38073#0" expanded="true" />
-                <element signature="e#39096#39097#0" expanded="true" />
-                <element signature="e#39141#39142#0" expanded="true" />
-                <element signature="e#40984#40985#0" expanded="true" />
-                <element signature="e#41064#41065#0" expanded="true" />
-                <element signature="e#41342#41343#0" expanded="true" />
-                <element signature="e#41393#41394#0" expanded="true" />
-                <element signature="e#41430#41431#0" expanded="true" />
-                <element signature="e#41484#41485#0" expanded="true" />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="Binding.java" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/Binding.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="336">
-              <caret line="16" column="63" selection-start-line="16" selection-start-column="63" selection-end-line="16" selection-end-column="63" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="ProgramMemory.java" pinned="false" current-in-tab="false">
+      <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/memory/program/ProgramMemory.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="96">
-              <caret line="11" column="13" selection-start-line="11" selection-start-column="13" selection-end-line="11" selection-end-column="13" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="CompilerException.java" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/exceptions/CompilerException.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="96">
-              <caret line="8" column="5" selection-start-line="8" selection-start-column="5" selection-end-line="10" selection-end-column="40" />
+            <state relative-caret-position="375">
+              <caret line="56" column="68" selection-start-line="56" selection-start-column="68" selection-end-line="56" selection-end-column="68" />
               <folding>
-                <element signature="e#147#148#0" expanded="true" />
-                <element signature="e#171#172#0" expanded="true" />
+                <element signature="e#514#1023#0" />
+                <element signature="e#687#769#1" />
+                <element signature="e#1029#1519#0" />
+                <element signature="e#1191#1265#1" />
+                <element signature="e#1734#1931#0" />
+                <element signature="e#1937#2141#0" />
+                <element signature="e#2030#2116#1" />
+                <element signature="e#2069#2106#1" />
+                <element signature="e#2147#2807#0" />
+                <element signature="e#2237#2801#1" />
+                <element signature="e#2370#2791#0" />
+                <element signature="e#2813#4023#0" />
+                <element signature="e#2898#3023#0" />
+                <element signature="e#3127#3976#1" />
+                <element signature="e#3260#3926#0" />
+                <element signature="e#4029#5701#0" />
+                <element signature="e#4144#4269#0" />
+                <element signature="e#4328#4468#0" />
+                <element signature="e#4662#5654#1" />
+                <element signature="e#4938#5604#0" />
+                <element signature="e#5707#7659#0" />
+                <element signature="e#5978#7315#0" />
+                <element signature="e#6034#7305#1" />
+                <element signature="e#6115#6164#1" />
+                <element signature="e#6214#6361#1" />
+                <element signature="e#6444#6472#0" />
+                <element signature="e#6653#6745#1" />
+                <element signature="e#6778#6941#1" />
+                <element signature="e#7341#7373#0" />
+                <element signature="e#7392#7653#0" />
+                <element signature="e#7420#7513#1" />
+                <element signature="e#7518#7643#1" />
+                <element signature="e#7665#7746#0" />
+                <element signature="e#18289#18693#0" />
               </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="InvalidConditionalEvaluation.java" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/exceptions/InvalidConditionalEvaluation.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="48">
-              <caret line="2" column="69" selection-start-line="2" selection-start-column="69" selection-end-line="2" selection-end-column="69" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="EvaluationException.java" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/exceptions/EvaluationException.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="48">
-              <caret line="2" column="13" selection-start-line="2" selection-start-column="13" selection-end-line="2" selection-end-column="13" />
-              <folding>
-                <element signature="e#171#172#0" expanded="true" />
-                <element signature="e#197#198#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="Directive.java" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/directives/Directive.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="3840">
-              <caret line="174" column="28" selection-start-line="174" selection-start-column="28" selection-end-line="174" selection-end-column="28" />
-              <folding>
-                <element signature="imports" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="ExitDirective.java" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/directives/ExitDirective.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="120">
-              <caret line="5" column="11" selection-start-line="5" selection-start-column="11" selection-end-line="5" selection-end-column="11" />
-              <folding>
-                <element signature="e#222#223#0" expanded="true" />
-                <element signature="e#246#247#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="IDirective.java" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/directives/IDirective.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="240">
-              <caret line="13" column="25" selection-start-line="13" selection-start-column="25" selection-end-line="13" selection-end-column="25" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="LineConsumer.java" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/LineConsumer.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="600">
-              <caret line="25" column="54" selection-start-line="25" selection-start-column="54" selection-end-line="25" selection-end-column="54" />
             </state>
           </provider>
         </entry>
@@ -190,24 +138,68 @@
         <option value="$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/directives/IDirective.java" />
         <option value="$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/directives/Directive.java" />
         <option value="$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/ProgramCompiler.java" />
+        <option value="$PROJECT_DIR$/gui/src/com/github/technus/avrCloneGui/dataMemory/dataTable/DataTableModel.java" />
+        <option value="$PROJECT_DIR$/src/com/github/technus/avrClone/memory/program/ProgramMemory.java" />
       </list>
     </option>
   </component>
+  <component name="MessagesViewTool">
+    <option name="defaultListState">
+      <MessageListState>
+        <option name="autoscrollToSource" value="true" />
+        <option name="info" value="true" />
+        <option name="warnings" value="true" />
+      </MessageListState>
+    </option>
+  </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="-8" />
-    <option name="y" value="-8" />
-    <option name="width" value="3216" />
-    <option name="height" value="1786" />
+    <option name="x" value="-11" />
+    <option name="width" value="1364" />
+    <option name="height" value="1759" />
   </component>
   <component name="ProjectView">
-    <navigator proportions="" version="1">
+    <navigator currentView="Scope" currentSubView="Scope 'Project Files'; set:Project Files; class com.intellij.psi.search.scope.ProjectFilesScope" proportions="" version="1">
       <foldersAlwaysOnTop value="true" />
     </navigator>
-    <panes />
+    <panes>
+      <pane id="ProjectPane">
+        <subPane>
+          <expand>
+            <path>
+              <item name="AVRcore" type="b2602c69:ProjectViewProjectNode" />
+              <item name="src" type="462c0819:PsiDirectoryNode" />
+            </path>
+          </expand>
+          <select />
+        </subPane>
+      </pane>
+      <pane id="PackagesPane" />
+      <pane id="Scope">
+        <subPane subId="Scope 'Project Files'; set:Project Files; class com.intellij.psi.search.scope.ProjectFilesScope">
+          <expand>
+            <path>
+              <item name="AVRcore" type="3d21c010:ScopeViewTreeModel$ProjectNode" />
+              <item name="AVRcore" type="2674bda8:ScopeViewTreeModel$GroupNode" />
+            </path>
+            <path>
+              <item name="AVRcore" type="3d21c010:ScopeViewTreeModel$ProjectNode" />
+              <item name="AVRcore" type="2674bda8:ScopeViewTreeModel$GroupNode" />
+              <item name="src" type="442cc68d:ScopeViewTreeModel$RootNode" />
+            </path>
+          </expand>
+          <select />
+        </subPane>
+      </pane>
+    </panes>
   </component>
   <component name="PropertiesComponent">
+    <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="last.edited.regexp" value="" />
-    <property name="settings.editor.selected.configurable" value="reference.settingsdialog.IDE.editor.colors.Color Scheme Font" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/src" />
+    <property name="project.structure.last.edited" value="Libraries" />
+    <property name="project.structure.proportion" value="0.15" />
+    <property name="project.structure.side.proportion" value="0.2" />
+    <property name="settings.editor.selected.configurable" value="editor.preferences.fonts.default" />
   </component>
   <component name="RecentsManager">
     <key name="CopyClassDialog.RECENTS_KEY">
@@ -227,54 +219,41 @@
     </option>
   </component>
   <component name="RunManager">
-    <configuration default="true" type="Applet" factoryName="Applet">
+    <configuration default="true" type="Applet">
       <option name="POLICY_FILE" value="$APPLICATION_HOME_DIR$/bin/appletviewer.policy" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
     </configuration>
     <configuration name="Unnamed" type="Application" factoryName="Application">
       <option name="MAIN_CLASS_NAME" value="com.github.technus.avrCloneGui.Main" />
       <module name="AVRcore" />
       <option name="WORKING_DIRECTORY" value="file://$PROJECT_DIR$" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
     </configuration>
     <configuration default="true" type="Application" factoryName="Application">
       <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
     </configuration>
     <configuration default="true" type="JUnit" factoryName="JUnit">
-      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="false" />
-      <option name="ALTERNATIVE_JRE_PATH" />
-      <option name="PACKAGE_NAME" />
-      <option name="MAIN_CLASS_NAME" />
-      <option name="METHOD_NAME" />
       <option name="TEST_OBJECT" value="class" />
-      <option name="VM_PARAMETERS" value="-ea" />
-      <option name="PARAMETERS" />
       <option name="WORKING_DIRECTORY" value="$MODULE_DIR$" />
-      <option name="PASS_PARENT_ENVS" value="true" />
-      <option name="TEST_SEARCH_SCOPE">
-        <value defaultName="singleModule" />
-      </option>
-      <patterns />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
     </configuration>
-    <configuration default="true" type="TestNG" factoryName="TestNG">
-      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="false" />
-      <option name="ALTERNATIVE_JRE_PATH" />
-      <option name="SUITE_NAME" />
-      <option name="PACKAGE_NAME" />
-      <option name="MAIN_CLASS_NAME" />
-      <option name="METHOD_NAME" />
-      <option name="GROUP_NAME" />
+    <configuration default="true" type="TestNG">
       <option name="TEST_OBJECT" value="CLASS" />
-      <option name="VM_PARAMETERS" value="-ea" />
-      <option name="PARAMETERS" />
       <option name="WORKING_DIRECTORY" value="$MODULE_DIR$" />
-      <option name="OUTPUT_DIRECTORY" />
-      <option name="PASS_PARENT_ENVS" value="true" />
-      <option name="TEST_SEARCH_SCOPE">
-        <value defaultName="singleModule" />
-      </option>
-      <option name="USE_DEFAULT_REPORTERS" value="false" />
-      <option name="PROPERTIES_FILE" />
       <properties />
       <listeners />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
     </configuration>
   </component>
   <component name="SvnConfiguration">
@@ -300,219 +279,85 @@
     </todo-panel>
   </component>
   <component name="ToolWindowManager">
-    <frame x="-8" y="-8" width="3216" height="1786" extended-state="0" />
+    <frame x="-6" y="0" width="779" height="1005" extended-state="0" />
     <editor active="true" />
     <layout>
-      <window_info anchor="right" id="Palette" order="3" />
-      <window_info anchor="bottom" id="TODO" order="6" sideWeight="0.4993667" visible="true" weight="0.32969698" />
-      <window_info anchor="right" id="Palette&#9;" order="3" />
-      <window_info id="Image Layers" order="2" />
-      <window_info anchor="right" id="Capture Analysis" order="3" />
-      <window_info active="true" anchor="bottom" id="Event Log" order="7" sideWeight="0.5006333" side_tool="true" visible="true" weight="0.32969698" />
-      <window_info anchor="right" id="Maven Projects" order="3" />
-      <window_info anchor="bottom" id="Version Control" order="7" />
-      <window_info anchor="bottom" id="Run" order="2" />
-      <window_info anchor="bottom" id="Terminal" order="7" />
-      <window_info id="Capture Tool" order="2" />
-      <window_info id="Designer" order="2" />
-      <window_info content_ui="combo" id="Project" order="0" weight="0.24540849" />
-      <window_info anchor="bottom" id="Find" order="1" sideWeight="0.4993667" weight="0.21515152" />
+      <window_info content_ui="combo" id="Project" order="0" weight="0.39355582" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
-      <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
-      <window_info id="UI Designer" order="2" />
-      <window_info anchor="right" id="Theme Preview" order="3" />
-      <window_info id="Favorites" order="2" side_tool="true" />
-      <window_info anchor="bottom" id="Debug" order="3" weight="0.4" />
-      <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
-      <window_info id="Nl-Palette" order="2" />
-      <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
-      <window_info anchor="right" id="Commander" order="0" weight="0.4" />
-      <window_info anchor="right" id="Properties" order="3" />
+      <window_info id="Designer" order="2" />
+      <window_info id="Image Layers" order="3" />
+      <window_info id="UI Designer" order="4" />
+      <window_info id="Favorites" order="5" side_tool="true" />
+      <window_info id="Capture Tool" order="6" />
+      <window_info id="Nl-Palette" order="7" />
       <window_info anchor="bottom" id="Message" order="0" />
+      <window_info anchor="bottom" id="Find" order="1" sideWeight="0.4993667" weight="0.21515152" />
+      <window_info anchor="bottom" id="Run" order="2" />
+      <window_info anchor="bottom" id="Debug" order="3" weight="0.4" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
-      <window_info anchor="bottom" id="Messages" order="7" />
+      <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
+      <window_info anchor="bottom" id="TODO" order="6" sideWeight="0.49871793" weight="0.32909784" />
+      <window_info anchor="bottom" id="Terminal" order="7" />
+      <window_info anchor="bottom" id="Event Log" order="8" sideWeight="0.5004789" side_tool="true" weight="0.43324938" />
+      <window_info anchor="bottom" id="Version Control" order="9" />
+      <window_info anchor="bottom" id="Messages" order="10" sideWeight="0.49952108" weight="0.19581749" />
+      <window_info anchor="bottom" id="Usages" order="11" />
+      <window_info anchor="bottom" id="Inspector" order="12" side_tool="true" />
+      <window_info anchor="bottom" id="Dependencies Viewer" order="13" />
+      <window_info anchor="right" id="Commander" order="0" weight="0.4" />
+      <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
+      <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
+      <window_info anchor="right" id="Palette" order="3" />
+      <window_info anchor="right" id="Properties" order="4" />
+      <window_info anchor="right" id="Capture Analysis" order="5" />
+      <window_info anchor="right" id="Maven Projects" order="6" />
+      <window_info anchor="right" id="Palette&#9;" order="7" />
+      <window_info anchor="right" id="Theme Preview" order="8" />
+      <window_info anchor="right" id="Maven" order="9" />
     </layout>
     <layout-to-restore>
-      <window_info anchor="right" id="Palette" order="3" />
-      <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
-      <window_info anchor="right" id="Capture Analysis" order="4" />
-      <window_info anchor="bottom" id="Run" order="2" />
-      <window_info anchor="right" id="Theme Preview" order="5" />
-      <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
-      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.24540849" />
+      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.39355582" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
+      <window_info id="Designer" order="2" />
+      <window_info id="Image Layers" order="3" />
+      <window_info id="UI Designer" order="4" />
+      <window_info id="Favorites" order="5" side_tool="true" />
+      <window_info id="Capture Tool" order="6" />
+      <window_info id="Nl-Palette" order="7" />
+      <window_info anchor="bottom" id="Message" order="0" />
+      <window_info anchor="bottom" id="Find" order="1" sideWeight="0.4993667" weight="0.21515152" />
+      <window_info anchor="bottom" id="Run" order="2" />
+      <window_info anchor="bottom" id="Debug" order="3" weight="0.4" />
+      <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
+      <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
+      <window_info anchor="bottom" id="TODO" order="6" sideWeight="0.49871793" weight="0.32909784" />
+      <window_info anchor="bottom" id="Terminal" order="7" />
+      <window_info anchor="bottom" id="Event Log" order="8" sideWeight="0.5004789" side_tool="true" visible="true" weight="0.43324938" />
+      <window_info anchor="bottom" id="Version Control" order="9" />
+      <window_info anchor="bottom" id="Messages" order="10" sideWeight="0.49952108" weight="0.19581749" />
+      <window_info anchor="bottom" id="Usages" order="11" />
+      <window_info anchor="bottom" id="Inspector" order="12" side_tool="true" />
+      <window_info anchor="bottom" id="Dependencies Viewer" order="13" />
       <window_info anchor="right" id="Commander" order="0" weight="0.4" />
       <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
-      <window_info anchor="bottom" id="TODO" order="6" />
-      <window_info id="Image Layers" order="2" />
-      <window_info id="Designer" order="3" />
-      <window_info anchor="right" id="Properties" order="6" />
-      <window_info id="UI Designer" order="4" />
-      <window_info anchor="bottom" id="Find" order="1" sideWeight="0.4993667" visible="true" weight="0.21515152" />
-      <window_info anchor="bottom" id="Debug" order="3" weight="0.4" />
+      <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
+      <window_info anchor="right" id="Palette" order="3" />
+      <window_info anchor="right" id="Properties" order="4" />
+      <window_info anchor="right" id="Capture Analysis" order="5" />
+      <window_info anchor="right" id="Maven Projects" order="6" />
       <window_info anchor="right" id="Palette&#9;" order="7" />
-      <window_info anchor="bottom" id="Terminal" order="8" />
-      <window_info anchor="bottom" id="Event Log" order="9" sideWeight="0.5006333" side_tool="true" visible="true" weight="0.21515152" />
-      <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
-      <window_info anchor="bottom" id="Version Control" order="7" />
-      <window_info id="Capture Tool" order="5" />
-      <window_info anchor="bottom" id="Message" order="0" />
-      <window_info id="Nl-Palette" order="6" />
-      <window_info anchor="right" id="Maven Projects" order="8" />
-      <window_info id="Favorites" order="7" side_tool="true" />
+      <window_info anchor="right" id="Theme Preview" order="8" />
+      <window_info anchor="right" id="Maven" order="9" />
     </layout-to-restore>
   </component>
-  <component name="VcsContentAnnotationSettings">
-    <option name="myLimit" value="2678400000" />
-  </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <option name="time" value="2" />
-    </breakpoint-manager>
+  <component name="UsagesViewTool">
+    <version id="1" />
+    <tabs />
+    <default_view_options>
+      <options category_option="false" module_option="true" model_option="true" root_option="true" path_option="false" count_option="true" info_option="true" view_searched_nodes_option="true" group_searched_nodes_option="true" autoscroll_option="false" />
+    </default_view_options>
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/ProgramCompiler.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="6720">
-          <caret line="298" column="62" selection-start-line="298" selection-start-column="62" selection-end-line="298" selection-end-column="62" />
-          <folding>
-            <element signature="imports" expanded="true" />
-            <element signature="e#38024#38025#0" expanded="true" />
-            <element signature="e#38072#38073#0" expanded="true" />
-            <element signature="e#39096#39097#0" expanded="true" />
-            <element signature="e#39141#39142#0" expanded="true" />
-            <element signature="e#40984#40985#0" expanded="true" />
-            <element signature="e#41064#41065#0" expanded="true" />
-            <element signature="e#41342#41343#0" expanded="true" />
-            <element signature="e#41393#41394#0" expanded="true" />
-            <element signature="e#41430#41431#0" expanded="true" />
-            <element signature="e#41484#41485#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/memory/program/ProgramMemory.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="264">
-          <caret line="11" column="13" selection-start-line="11" selection-start-column="13" selection-end-line="11" selection-end-column="13" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/exceptions/CompilerException.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="192">
-          <caret line="8" column="5" selection-start-line="8" selection-start-column="5" selection-end-line="10" selection-end-column="40" />
-          <folding>
-            <element signature="e#147#148#0" expanded="true" />
-            <element signature="e#171#172#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/exceptions/InvalidConditionalEvaluation.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="48">
-          <caret line="2" column="69" selection-start-line="2" selection-start-column="69" selection-end-line="2" selection-end-column="69" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/exceptions/EvaluationException.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="48">
-          <caret line="2" column="13" selection-start-line="2" selection-start-column="13" selection-end-line="2" selection-end-column="13" />
-          <folding>
-            <element signature="e#171#172#0" expanded="true" />
-            <element signature="e#197#198#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/directives/Directive.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="4176">
-          <caret line="174" column="28" lean-forward="true" selection-start-line="174" selection-start-column="28" selection-end-line="174" selection-end-column="28" />
-          <folding>
-            <element signature="imports" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/directives/ExitDirective.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="120">
-          <caret line="5" column="11" selection-start-line="5" selection-start-column="11" selection-end-line="5" selection-end-column="11" />
-          <folding>
-            <element signature="e#222#223#0" expanded="true" />
-            <element signature="e#246#247#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/directives/IDirective.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="240">
-          <caret line="13" column="25" selection-start-line="13" selection-start-column="25" selection-end-line="13" selection-end-column="25" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/LineConsumer.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="600">
-          <caret line="25" column="54" lean-forward="true" selection-start-line="25" selection-start-column="54" selection-end-line="25" selection-end-column="54" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/Binding.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="384">
-          <caret line="16" column="63" lean-forward="true" selection-start-line="16" selection-start-column="63" selection-end-line="16" selection-end-column="63" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/ProgramCompiler.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="4176">
-          <caret line="174" column="20" selection-start-line="174" selection-start-column="20" selection-end-line="174" selection-end-column="20" />
-          <folding>
-            <element signature="imports" expanded="true" />
-            <element signature="e#38024#38025#0" expanded="true" />
-            <element signature="e#38072#38073#0" expanded="true" />
-            <element signature="e#39096#39097#0" expanded="true" />
-            <element signature="e#39141#39142#0" expanded="true" />
-            <element signature="e#40984#40985#0" expanded="true" />
-            <element signature="e#41064#41065#0" expanded="true" />
-            <element signature="e#41342#41343#0" expanded="true" />
-            <element signature="e#41393#41394#0" expanded="true" />
-            <element signature="e#41430#41431#0" expanded="true" />
-            <element signature="e#41484#41485#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/directives/Directive.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="6528">
-          <caret line="272" column="56" selection-start-line="272" selection-start-column="52" selection-end-line="272" selection-end-column="56" />
-          <folding>
-            <element signature="imports" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/LineConsumer.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="768">
-          <caret line="32" column="46" selection-start-line="32" selection-start-column="46" selection-end-line="32" selection-end-column="46" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/Position.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="168">
-          <caret line="7" column="23" selection-start-line="7" selection-start-column="23" selection-end-line="7" selection-end-column="23" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/Segment.java">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="48">
@@ -520,41 +365,9 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/js/CompilerContext.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="792">
-          <caret line="57" column="20" lean-forward="true" selection-start-line="57" selection-start-column="20" selection-end-line="57" selection-end-column="20" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/AvrCore.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-2400">
-          <caret line="17" column="13" selection-start-line="17" selection-start-column="13" selection-end-line="17" selection-end-column="13" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar://C:/Program Files/Java/jdk1.8.0_77/src.zip!/java/lang/String.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="552">
-          <caret line="2221" column="18" selection-start-line="2221" selection-start-column="18" selection-end-line="2221" selection-end-column="18" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar://C:/Program Files/Java/jdk1.8.0_77/src.zip!/java/util/ArrayList.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="552">
-          <caret line="599" column="19" selection-start-line="599" selection-start-column="19" selection-end-line="599" selection-end-column="19" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/Includer.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="264">
-          <caret line="11" column="44" lean-forward="true" selection-start-line="11" selection-start-column="44" selection-end-line="11" selection-end-column="44" />
-        </state>
-      </provider>
-    </entry>
+    <entry file="jar://C:/Program Files/Java/jdk1.8.0_77/src.zip!/java/lang/String.java" />
+    <entry file="jar://C:/Program Files/Java/jdk1.8.0_77/src.zip!/java/util/ArrayList.java" />
+    <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/Includer.java" />
     <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/ListingMode.java">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="48">
@@ -576,27 +389,9 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/Position.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="168">
-          <caret line="7" column="23" selection-start-line="7" selection-start-column="23" selection-end-line="7" selection-end-column="23" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar://C:/Program Files/Java/jdk1.8.0_77/src.zip!/java/util/HashSet.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="990">
-          <caret line="189" column="23" lean-forward="true" selection-start-line="189" selection-start-column="23" selection-end-line="189" selection-end-column="23" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar://C:/Program Files/Java/jdk1.8.0_77/src.zip!/java/util/HashMap.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="542">
-          <caret line="532" column="19" selection-start-line="532" selection-start-column="19" selection-end-line="532" selection-end-column="19" />
-        </state>
-      </provider>
-    </entry>
+    <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/Position.java" />
+    <entry file="jar://C:/Program Files/Java/jdk1.8.0_77/src.zip!/java/util/HashSet.java" />
+    <entry file="jar://C:/Program Files/Java/jdk1.8.0_77/src.zip!/java/util/HashMap.java" />
     <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/js/CompilerBindings.java">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="336">
@@ -614,49 +409,28 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/exceptions/PrintingException.java">
+    <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/exceptions/PrintingException.java" />
+    <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/exceptions/EvaluationException.java" />
+    <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/directives/ExitDirective.java" />
+    <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/exceptions/InvalidConditionalEvaluation.java" />
+    <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/LineConsumer.java" />
+    <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/ProgramCompiler.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="48">
-          <caret line="2" column="47" selection-start-line="2" selection-start-column="47" selection-end-line="2" selection-end-column="47" />
-          <folding>
-            <element signature="e#170#171#0" expanded="true" />
-            <element signature="e#196#197#0" expanded="true" />
-          </folding>
+        <state relative-caret-position="67">
+          <caret line="17" selection-start-line="17" selection-end-line="17" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/exceptions/EvaluationException.java">
+    <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/Binding.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="48">
-          <caret line="2" column="13" selection-start-line="2" selection-start-column="13" selection-end-line="2" selection-end-column="13" />
-          <folding>
-            <element signature="e#171#172#0" expanded="true" />
-            <element signature="e#197#198#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/directives/ExitDirective.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="120">
-          <caret line="5" column="11" selection-start-line="5" selection-start-column="11" selection-end-line="5" selection-end-column="11" />
-          <folding>
-            <element signature="e#222#223#0" expanded="true" />
-            <element signature="e#246#247#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/memory/program/ProgramMemory.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="96">
-          <caret line="11" column="13" selection-start-line="11" selection-start-column="13" selection-end-line="11" selection-end-column="13" />
+        <state relative-caret-position="196">
+          <caret line="16" column="63" selection-start-line="16" selection-start-column="63" selection-end-line="16" selection-end-column="63" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/exceptions/CompilerException.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="96">
+        <state relative-caret-position="56">
           <caret line="8" column="5" selection-start-line="8" selection-start-column="5" selection-end-line="10" selection-end-column="40" />
           <folding>
             <element signature="e#147#148#0" expanded="true" />
@@ -665,30 +439,9 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/exceptions/InvalidConditionalEvaluation.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="48">
-          <caret line="2" column="69" selection-start-line="2" selection-start-column="69" selection-end-line="2" selection-end-column="69" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/directives/IDirective.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="240">
-          <caret line="13" column="25" selection-start-line="13" selection-start-column="25" selection-end-line="13" selection-end-column="25" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/LineConsumer.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="600">
-          <caret line="25" column="54" selection-start-line="25" selection-start-column="54" selection-end-line="25" selection-end-column="54" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/directives/Directive.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="3840">
+        <state relative-caret-position="2198">
           <caret line="174" column="28" selection-start-line="174" selection-start-column="28" selection-end-line="174" selection-end-column="28" />
           <folding>
             <element signature="imports" expanded="true" />
@@ -696,32 +449,203 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/Binding.java">
+    <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/directives/IDirective.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="336">
-          <caret line="16" column="63" selection-start-line="16" selection-start-column="63" selection-end-line="16" selection-end-column="63" />
+        <state relative-caret-position="126">
+          <caret line="13" selection-start-line="13" selection-end-line="13" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/ProgramCompiler.java">
+    <entry file="file://$PROJECT_DIR$/gui/src/com/github/technus/avrCloneGui/dataMemory/dataTable/DataTableModel.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="580">
-          <caret line="205" column="83" lean-forward="true" selection-start-line="205" selection-start-column="83" selection-end-line="205" selection-end-column="83" />
+        <state relative-caret-position="168">
+          <caret line="20" column="29" selection-start-line="20" selection-start-column="29" selection-end-line="20" selection-end-column="29" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/META-INF/MANIFEST.MF">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/gui/src/com/github/technus/avrCloneGui/Main.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="42">
+          <caret line="3" column="34" selection-start-line="3" selection-start-column="34" selection-end-line="3" selection-end-column="34" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/gui/gui.iml">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/compiler/js/CompilerContext.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1050">
+          <caret line="85" selection-start-line="85" selection-end-line="85" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/jpsam3hklam9/des/FeistelFunction.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="28">
+          <caret line="2" column="6" selection-start-line="2" selection-start-column="6" selection-end-line="2" selection-end-column="6" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/jpsam3hklam9/des/RoundKeyGenerator.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="28">
+          <caret line="2" column="6" selection-start-line="2" selection-start-column="6" selection-end-line="2" selection-end-column="6" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/jpsam3hklam9/des/DES.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="224">
+          <caret line="16" column="13" selection-start-line="16" selection-start-column="13" selection-end-line="16" selection-end-column="13" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/AVRcore.ipr">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/AVRcore.iws">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/instructions/InstructionRegistry.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="56">
+          <caret line="7" column="13" selection-start-line="7" selection-start-column="13" selection-end-line="7" selection-end-column="13" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/AvrCore.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="155">
+          <caret line="21" column="20" selection-start-line="21" selection-start-column="20" selection-end-line="21" selection-end-column="20" />
           <folding>
             <element signature="imports" expanded="true" />
-            <element signature="e#38024#38025#0" expanded="true" />
-            <element signature="e#38072#38073#0" expanded="true" />
-            <element signature="e#39096#39097#0" expanded="true" />
-            <element signature="e#39141#39142#0" expanded="true" />
-            <element signature="e#40984#40985#0" expanded="true" />
-            <element signature="e#41064#41065#0" expanded="true" />
-            <element signature="e#41342#41343#0" expanded="true" />
-            <element signature="e#41393#41394#0" expanded="true" />
-            <element signature="e#41430#41431#0" expanded="true" />
-            <element signature="e#41484#41485#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/src/com/github/technus/avrClone/memory/program/ProgramMemory.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="375">
+          <caret line="56" column="68" selection-start-line="56" selection-start-column="68" selection-end-line="56" selection-end-column="68" />
+          <folding>
+            <element signature="e#514#1023#0" />
+            <element signature="e#687#769#1" />
+            <element signature="e#1029#1519#0" />
+            <element signature="e#1191#1265#1" />
+            <element signature="e#1734#1931#0" />
+            <element signature="e#1937#2141#0" />
+            <element signature="e#2030#2116#1" />
+            <element signature="e#2069#2106#1" />
+            <element signature="e#2147#2807#0" />
+            <element signature="e#2237#2801#1" />
+            <element signature="e#2370#2791#0" />
+            <element signature="e#2813#4023#0" />
+            <element signature="e#2898#3023#0" />
+            <element signature="e#3127#3976#1" />
+            <element signature="e#3260#3926#0" />
+            <element signature="e#4029#5701#0" />
+            <element signature="e#4144#4269#0" />
+            <element signature="e#4328#4468#0" />
+            <element signature="e#4662#5654#1" />
+            <element signature="e#4938#5604#0" />
+            <element signature="e#5707#7659#0" />
+            <element signature="e#5978#7315#0" />
+            <element signature="e#6034#7305#1" />
+            <element signature="e#6115#6164#1" />
+            <element signature="e#6214#6361#1" />
+            <element signature="e#6444#6472#0" />
+            <element signature="e#6653#6745#1" />
+            <element signature="e#6778#6941#1" />
+            <element signature="e#7341#7373#0" />
+            <element signature="e#7392#7653#0" />
+            <element signature="e#7420#7513#1" />
+            <element signature="e#7518#7643#1" />
+            <element signature="e#7665#7746#0" />
+            <element signature="e#18289#18693#0" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+  </component>
+  <component name="masterDetails">
+    <states>
+      <state key="ArtifactsStructureConfigurable.UI">
+        <settings>
+          <artifact-editor />
+          <last-edited>AVRcore:jar</last-edited>
+          <splitter-proportions>
+            <option name="proportions">
+              <list>
+                <option value="0.2" />
+                <option value="0.5" />
+              </list>
+            </option>
+          </splitter-proportions>
+        </settings>
+      </state>
+      <state key="FacetStructureConfigurable.UI">
+        <settings>
+          <last-edited>No facets are configured</last-edited>
+          <splitter-proportions>
+            <option name="proportions">
+              <list>
+                <option value="0.2" />
+              </list>
+            </option>
+          </splitter-proportions>
+        </settings>
+      </state>
+      <state key="GlobalLibrariesConfigurable.UI">
+        <settings>
+          <splitter-proportions>
+            <option name="proportions">
+              <list>
+                <option value="0.2" />
+              </list>
+            </option>
+          </splitter-proportions>
+        </settings>
+      </state>
+      <state key="JdkListConfigurable.UI">
+        <settings>
+          <last-edited>1.8</last-edited>
+          <splitter-proportions>
+            <option name="proportions">
+              <list>
+                <option value="0.2" />
+              </list>
+            </option>
+          </splitter-proportions>
+        </settings>
+      </state>
+      <state key="ModuleStructureConfigurable.UI">
+        <settings>
+          <last-edited>AVRcore</last-edited>
+          <splitter-proportions>
+            <option name="proportions">
+              <list>
+                <option value="0.2" />
+              </list>
+            </option>
+          </splitter-proportions>
+        </settings>
+      </state>
+      <state key="ProjectLibrariesConfigurable.UI">
+        <settings>
+          <last-edited>lib</last-edited>
+          <splitter-proportions>
+            <option name="proportions">
+              <list>
+                <option value="0.2" />
+              </list>
+            </option>
+          </splitter-proportions>
+        </settings>
+      </state>
+    </states>
   </component>
 </project>
