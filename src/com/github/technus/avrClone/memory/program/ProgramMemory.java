@@ -54,7 +54,7 @@ public class ProgramMemory implements Cloneable{
         this.param1 = param1;
         this.registry = registry;
         if(instructions.length!=param0.length||instructions.length!=param1.length){
-            throw new RuntimeException("Invalid lenght of arrays!");
+            throw new RuntimeException("Invalid length of arrays!");
         }
     }
 
