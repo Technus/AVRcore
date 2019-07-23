@@ -21,7 +21,7 @@ public abstract class Instruction implements I_Instruction {
             NULL = new Instruction("NULL",false) {
                 @Override
                 public ExecutionEvent execute(AvrCore core) {
-                    throw new NullPointerException("Null instruction " + (core.programCounter++));
+                    return new ExecutionEvent(core,core.programCounter+1,this);
                 }
             },
             ADC = new Instruction("ADC",true, R, R) {
