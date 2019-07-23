@@ -1033,7 +1033,7 @@ public abstract class Instruction implements I_Instruction {
             },
             LD = new Instruction("LD",true) {
                 @Override
-                public void compileInstruction(AvrCore core, ProgramMemory programMemory, int address, boolean immersive, int[] operandsReturn, String[] values) throws InvalidMnemonic{
+                public void compileInstruction(ProgramMemory programMemory, int address, boolean immersive, int[] operandsReturn, String[] values) throws InvalidMnemonic{
                     throw new InvalidMnemonic("This LD is only a dummy!");
                 }
 
@@ -1802,7 +1802,7 @@ public abstract class Instruction implements I_Instruction {
             },
             SPM = new Instruction("SPM",true) {
                 @Override
-                public void compileInstruction(AvrCore core, ProgramMemory programMemory, int address, boolean immersive, int[] operandsReturn, String[] values) throws InvalidMnemonic{
+                public void compileInstruction(ProgramMemory programMemory, int address, boolean immersive, int[] operandsReturn, String[] values) throws InvalidMnemonic{
                     throw new InvalidMnemonic("This SPM is only a dummy!");
                 }
 
@@ -1812,7 +1812,7 @@ public abstract class Instruction implements I_Instruction {
             },
             ST = new Instruction("ST",true) {
                 @Override
-                public void compileInstruction(AvrCore core, ProgramMemory programMemory, int address, boolean immersive, int[] operandsReturn, String[] values)  throws InvalidMnemonic{
+                public void compileInstruction(ProgramMemory programMemory, int address, boolean immersive, int[] operandsReturn, String[] values)  throws InvalidMnemonic{
                     throw new InvalidMnemonic("This ST is only a dummy!");
                 }
 
@@ -2332,6 +2332,7 @@ public abstract class Instruction implements I_Instruction {
     private final String name;
     private final OperandLimit limit0, limit1;
     private final boolean immersive;
+    private final int operandCount;
 
     protected Instruction(String name, boolean immersive) {
         this(name,immersive, null, null);
@@ -2350,6 +2351,7 @@ public abstract class Instruction implements I_Instruction {
             INSTRUCTIONS_IMMERSIVE.add(this);
         }
         INSTRUCTIONS_OP.add(this);
+        operandCount=limit0 == null ? 0 : (limit1 == null ? 1 : 2);
     }
 
     @Override
@@ -2371,7 +2373,6 @@ public abstract class Instruction implements I_Instruction {
     /**
      * Default compileInstruction implementation. works well for 2x Register number
      *
-     * @param core           core that is compiling
      * @param programMemory  target prog mem
      * @param address           current prog address
      * @param immersive      be realistic
@@ -2380,7 +2381,7 @@ public abstract class Instruction implements I_Instruction {
      * @return is instruction valid
      */
     @Override
-    public void compileInstruction(AvrCore core, ProgramMemory programMemory, int address, boolean immersive, int[] operandsReturn, String[] values) throws ProgramException {
+    public void compileInstruction(ProgramMemory programMemory, int address, boolean immersive, int[] operandsReturn, String[] values) throws ProgramException {
         Number temp=0;
         InvalidOperand0 err0=null;
         if (values.length >0) {
@@ -2446,7 +2447,7 @@ public abstract class Instruction implements I_Instruction {
 
     @Override
     public int getOperandCount() {
-        return limit0 == null ? 0 : (limit1 == null ? 1 : 2);
+        return operandCount;
     }
 
     @Override

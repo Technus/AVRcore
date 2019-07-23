@@ -11,6 +11,7 @@ import com.github.technus.avrClone.instructions.ExecutionEvent;
 import com.github.technus.avrClone.instructions.I_Instruction;
 import com.github.technus.avrClone.instructions.InstructionRegistry;
 import com.github.technus.avrClone.instructions.OperandLimit;
+import com.github.technus.avrClone.memory.program.ProgramMemory;
 import com.github.technus.avrCloneGui.Editors.IntegerEditor;
 import com.github.technus.avrCloneGui.dataMemory.IRefreshDataMemoryView;
 import com.github.technus.avrCloneGui.dataMemory.cpuTable.CpuTableModel;
@@ -318,7 +319,7 @@ public class AvrTest {
                 }
                 String program=stringBuilder.toString();
                 JOptionPane.showMessageDialog(asm,scrollable(program));
-                core.setProgramMemoryString(program);
+                core.setProgramMemory(new ProgramMemory(core.getInstructionRegistry(),core.isUsingImmersiveOperands(), program.split("\\n")));
 
                 refreshProgramMemory();
             } catch (Exception ex){

@@ -9,7 +9,6 @@ public interface I_Instruction {
 
     /**
      * must check if the current operands and adresses are valid
-     * @param core
      * @param programMemory
      * @param addr
      * @param immersive
@@ -17,10 +16,10 @@ public interface I_Instruction {
      * @param values Instruction, Operand 0, Operand 1
      * @return
      */
-    void compileInstruction(AvrCore core, ProgramMemory programMemory, int addr, boolean immersive, int[] operandsReturn, String[] values) throws ProgramException;
+    void compileInstruction(ProgramMemory programMemory, int addr, boolean immersive, int[] operandsReturn, String[] values) throws ProgramException;
 
     /**
-     * must check if the space that you want to acces EXISTS (in case of indirect operations)
+     * must check if the space that you want to access EXISTS (in case of indirect operations)
      * {#link com.github.technus.avrClone.AvrCore#isDataAddressValid(int) isDataAddressValid}
      * @param core
      */

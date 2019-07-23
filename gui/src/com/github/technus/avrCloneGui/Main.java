@@ -12,7 +12,11 @@ import javax.swing.*;
 
 public class Main {
     private static ProgramCompiler programCompiler=new ProgramCompiler();
-    private static AvrCore core=new AvrCore(InstructionRegistry.INSTRUCTION_REGISTRY_OP,false);
+    private static AvrCore core=new AvrCore();
+    static {
+        core.setInstructionRegistry(InstructionRegistry.INSTRUCTION_REGISTRY_OP);
+        core.setUsingImmersiveOperands(false);
+    }
 
     public static void main(String[] args) {
         try{

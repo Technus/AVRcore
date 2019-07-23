@@ -47,7 +47,7 @@ public class ProgramTableModel implements TableModel,IRefreshProgramMemoryView {
 
     @Override
     public int getRowCount() {
-        return core.getProgramMemory()==null?0:core.getProgramSize();
+        return core.getProgramMemory()==null?0:core.getProgramMemory().instructions.length;
     }
 
     @Override

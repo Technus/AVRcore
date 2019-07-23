@@ -1,6 +1,5 @@
 package com.github.technus.avrClone.memory.program;
 
-import com.github.technus.avrClone.AvrCore;
 import com.github.technus.avrClone.compiler.Line;
 import com.github.technus.avrClone.instructions.I_Instruction;
 import com.github.technus.avrClone.instructions.InstructionRegistry;
@@ -12,57 +11,53 @@ import java.util.List;
 public class ProgramMemory implements Cloneable{
     public final int[] instructions, param0, param1;
     public final InstructionRegistry registry;
+    public final boolean immersiveOperands;
 
-    public ProgramMemory(AvrCore core, List<String> stringsList) throws Exception{
+    public ProgramMemory(InstructionRegistry registry, boolean immersiveOperands, List<String> stringsList) throws Exception{
+        this.registry=registry;
+        this.immersiveOperands=immersiveOperands;
+
         ArrayList<Line> lines=new ArrayList<>();
         for(int i=0;i<stringsList.size();i++){
             lines.add(new Line(null,null,i,stringsList.get(i),false));
         }
-
-        this.registry=core.getInstructionRegistry();
         int size=countPC(lines);
         instructions=new int[size];
         param0 =new int[size];
         param1 =new int[size];
-        compile(core, core.isUsingImmersiveOperands(), lines);
+        compile(immersiveOperands, lines);
     }
 
-    public ProgramMemory(AvrCore core, String... strings) throws Exception{
+    public ProgramMemory(InstructionRegistry registry, boolean immersiveOperands, String... strings) throws Exception{
+        this.registry=registry;
+        this.immersiveOperands=immersiveOperands;
+
         ArrayList<Line> lines=new ArrayList<>();
         for(int i=0;i<strings.length;i++){
             lines.add(new Line(null,null,i,strings[i],false));
         }
-
-        this.registry=core.getInstructionRegistry();
         int size=countPC(lines);
         instructions=new int[size];
         param0 =new int[size];
         param1 =new int[size];
-        compile(core, core.isUsingImmersiveOperands(), lines);
+        compile(immersiveOperands, lines);
     }
 
-    public ProgramMemory(AvrCore core, int size) {
-        this.registry=core.getInstructionRegistry();
+    public ProgramMemory(InstructionRegistry registry, boolean immersiveOperands, int size) {
+        this.registry=registry;
+        this.immersiveOperands=immersiveOperands;
+
         instructions=new int[size];
         param0 =new int[size];
         param1 =new int[size];
     }
 
-    public ProgramMemory(int[] instructions, int[] param0, int[] param1, InstructionRegistry registry) {
+    public ProgramMemory(InstructionRegistry registry, boolean immersiveOperands,int[] instructions, int[] param0, int[] param1) {
         this.instructions = instructions;
         this.param0 = param0;
         this.param1 = param1;
         this.registry = registry;
-        if(instructions.length!=param0.length||instructions.length!=param1.length){
-            throw new RuntimeException("Invalid length of arrays!");
-        }
-    }
-
-    private ProgramMemory(InstructionRegistry registry, int size){
-        this.registry=registry;
-        instructions=new int[size];
-        param0 =new int[size];
-        param1 =new int[size];
+        this.immersiveOperands=immersiveOperands;
     }
 
     public static int countPC(ArrayList<Line> lines){
@@ -158,7 +153,7 @@ public class ProgramMemory implements Cloneable{
         return stringBuilder.toString();
     }
 
-    private void compile(AvrCore core, boolean immersiveOperands, ArrayList<Line> lines) throws Exception {
+    private void compile(boolean immersiveOperands, ArrayList<Line> lines) throws Exception {
         //compileDefinitions(strings,core,compileLabels(readLabels(strings),strings));
 
         Line line=null;
@@ -187,7 +182,7 @@ public class ProgramMemory implements Cloneable{
                 instructions[pc] = id;
                 operandsReturn[0]=operandsReturn[1]=0;
 
-                registry.getInstruction(instructions[pc]).compileInstruction(core, this,pc, immersiveOperands, operandsReturn, values);
+                registry.getInstruction(instructions[pc]).compileInstruction(this,pc, immersiveOperands, operandsReturn, values);
 
                 param0[pc] = operandsReturn[0];
                 param1[pc] = operandsReturn[1];
@@ -199,7 +194,7 @@ public class ProgramMemory implements Cloneable{
             if(line==null){
                 throw new ProgramException("Program compilation failed!", e);
             }else {
-                throw new ProgramException("Program compilation failed! At line " + line.getLineNumber(), e);
+                throw new ProgramException("Program compilation failed! At line " + line.getLineNumber()+" : "+line.getLine(), e);
             }
         }
     }
@@ -400,7 +395,7 @@ public class ProgramMemory implements Cloneable{
 
     @Override
     public ProgramMemory clone() {
-        ProgramMemory programMemory=new ProgramMemory(registry,instructions.length);
+        ProgramMemory programMemory=new ProgramMemory(registry,immersiveOperands,instructions.length);
         System.arraycopy(instructions,0,programMemory.instructions,0,instructions.length);
         System.arraycopy(param0,0,programMemory.param0,0, param0.length);
         System.arraycopy(param1,0,programMemory.param1,0, param1.length);

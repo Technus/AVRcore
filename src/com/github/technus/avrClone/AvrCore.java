@@ -16,52 +16,27 @@ import java.util.*;
 public class AvrCore {
     private volatile boolean valid=false;
 
-    private InstructionRegistry instructionRegistry;
-    private boolean immersiveOperands;
+    private InstructionRegistry instructionRegistry;//MCU CORE
+    private boolean immersiveOperands;//MCU CURE
 
-    private ProgramMemory programMemory;
-    public volatile int programCounter = 0;
-
-    private IoMemory ioMemory;
-    private SramMemory sramMemory;
-    private SystemMemory systemMemory;
-
-    private EepromMemory eepromMemory;
-    public RemovableMemory<EepromMemory> eepromBackup;
-
+    public volatile int programCounter = 0;//PC register
+    public final int[] registerFile=new int[32];
     public volatile int[] dataMemory;
-    public BitSet accessibleMemory;
+    private BitSet accessibleMemory;
 
-    public volatile int[] registerFile=new int[32];
+    private ProgramMemory programMemory;//PROGRAM FLASH
+
+    private SystemMemory systemMemory;
+    private IoMemory ioMemory;//IO REGION
+    private SramMemory sramMemory;//SRAM MEMORY
+    private EepromMemory eepromMemory;//EEPROM
 
     private CPU_Registers cpuRegisters;
+    private final HashMap<String, I_RegisterPackage> packages = new HashMap<>();
 
+    private final TreeMap<Integer,I_Interrupt> interrupts = new TreeMap<>();
 
-    private HashMap<String, I_RegisterPackage> packages = new HashMap<>();
-    public HashMap<String, I_RegisterPackage> packagesBackup = new HashMap<>();
-
-    private TreeMap<Integer,I_Interrupt> interrupts = new TreeMap<>();
-
-    public AvrCore(InstructionRegistry instructionRegistry, boolean immersiveOperands) {
-        setUsingImmersiveOperands(immersiveOperands);
-        setInstructionRegistry(instructionRegistry);
-    }
-
-    public AvrCore simpleInit(){
-        setDataMemory(0x100,  0x100);//512 mem total
-        setCpuRegisters(0x30);
-        return this;
-    }
-
-    public void reset(){
-        clearDataMemoryContent();
-        clearRegisterFileContent();
-        programCounter=0;
-    }
-
-    public void clearRegisterFileContent(){
-        registerFile=new int[registerFile.length];
-    }
+    public AvrCore(){}
 
     //region validity
     public boolean checkValid() {
@@ -85,19 +60,40 @@ public class AvrCore {
         invalidate();
     }
 
-    public void invalidateDataMemory(){
-        eepromBackup=removeEepromMemory();
-
+    public void invalidateSystemMemory(){
+        systemMemory=null;
         ioMemory=null;
         sramMemory=null;
-        systemMemory=null;
+        eepromMemory=null;
+        cpuRegisters=null;
         dataMemory=null;
         accessibleMemory =null;
+        programCounter=0;
+        removeAllPackages();
+        clearRegisterFileContent();
         invalidate();
     }
     //endregion
 
     //region cpu logic
+    public AvrCore simpleInit(){
+        setDataMemory(0x100,  0x100);//512 mem total
+        setCpuRegisters(0x30);
+        return this;
+    }
+
+    public void reset(){
+        clearVolatileMemoryContent();
+        clearRegisterFileContent();
+        programCounter=0;
+    }
+
+    public void clearRegisterFileContent(){
+        for (int i = 0, len = registerFile.length; i < len; i++) {
+            registerFile[i] = 0;
+        }
+    }
+
     public void setUsingImmersiveOperands(boolean immersiveOperands) {
         if(this.immersiveOperands!=immersiveOperands){
             this.immersiveOperands=immersiveOperands;
@@ -109,10 +105,7 @@ public class AvrCore {
         return immersiveOperands;
     }
 
-    private void setInstructionRegistry(InstructionRegistry instructionRegistry) {
-        if(instructionRegistry==null){
-            return;
-        }
+    public void setInstructionRegistry(InstructionRegistry instructionRegistry) {
         if(this.instructionRegistry!=instructionRegistry) {
             this.instructionRegistry = instructionRegistry;
             invalidateProgramMemory();
@@ -127,39 +120,38 @@ public class AvrCore {
     //region dataMemory
     public boolean setDataMemory(int ioSize,int ramSize) {
         if(ioSize<=0 || ramSize<=0){
-            return false;
+            throw new IllegalArgumentException("Invalid memory size! Must be greater than 0!");
         }
-        ioMemory=new IoMemory(ioSize);
-        sramMemory=new SramMemory(ramSize);
-        systemMemory=new SystemMemory(ramSize);
+        systemMemory=new SystemMemory(ramSize);//IO and SRAM
 
-        dataMemory=systemMemory.data;
-
+        dataMemory=new int[systemMemory.size];//memory image
         accessibleMemory =new BitSet(dataMemory.length);
 
+        ioMemory=new IoMemory(ioSize);//in system memory
+
+        sramMemory=new SramMemory(ramSize);//in system memory
         accessibleMemory.set(sramMemory.getOffset(),sramMemory.getOffset()+sramMemory.getSize());
 
-        packagesBackup=new HashMap<>(packages);
-        packages.clear();
+        removeAllPackages();
+
         clearInterruptsConfiguration();
 
         cpuRegisters=null;
+        eepromMemory=null;
 
-        invalidate();
-        return true;
+        return checkValid();
     }
 
-    public void clearDataMemoryContent(){
-        if(!valid){
-            return;
-        }
-        eepromBackup=removeEepromMemory();
+    public void clearVolatileMemoryContent(){
+        RemovableMemory<EepromMemory> eepromBackup = getEepromMemory();
         dataMemory=new int[dataMemory.length];
-        setEepromMemory(eepromBackup);
-        initDataMemory();
+        if(eepromBackup!=null) {
+            setEepromMemory(eepromBackup);
+        }
+        initDataMemoryDefaults();
     }
 
-    public void initDataMemory(){
+    public void initDataMemoryDefaults(){
         for(I_RegisterPackage pack:packages.values()){
             System.arraycopy(pack.getDataDefault(),0,dataMemory,pack.getOffset(),pack.getSize());
         }
@@ -177,39 +169,87 @@ public class AvrCore {
         return accessibleMemory.nextClearBit(offset)>=offset+size;
     }
 
-    public boolean setEepromMemory(EepromMemory eeprom) {
+    public RemovableMemory<EepromMemory> setEepromDefinition(EepromMemory eeprom) {
         if(!valid){
-            return false;
+            throw new RuntimeException("Cannot set MCU EEPROM!");
         }
-        removeEepromMemory();
+        RemovableMemory<EepromMemory> eepromBackup= removeEepromMemory();
         if(eeprom!=null){
             eepromMemory=eeprom;
-            accessibleMemory.set(eeprom.getOffset(),eeprom.getOffset()+eeprom.getSize());
-            System.arraycopy(eepromMemory.getDataDefault(),eepromMemory.getOffset(),
-                    dataMemory,eepromMemory.getOffset()
-                    ,eepromMemory.getSize());
+            accessibleMemory.set(eepromMemory.getOffset(),eepromMemory.getOffset()+eepromMemory.getSize());
+            System.arraycopy(eepromMemory.getDataDefault(),0,
+                    dataMemory,eepromMemory.getOffset(),eepromMemory.getSize());
         }
-        return true;
+        return eepromBackup;
     }
 
-    public boolean setEepromMemory(RemovableMemory<EepromMemory> eeprom) {
+    public RemovableMemory<EepromMemory> setEepromMemory(RemovableMemory<EepromMemory> eeprom) {
         if(!valid){
-            return false;
+            throw new RuntimeException("Cannot set MCU EEPROM!");
         }
-        removeEepromMemory();
+        RemovableMemory<EepromMemory> eepromBackup=removeEepromMemory();
         if(eeprom!=null){
             eepromMemory=eeprom.getDefinition();
-            accessibleMemory.set(eeprom.getOffset(),eeprom.getOffset()+eeprom.getSize());
-            System.arraycopy(eeprom.getData(),eepromMemory.getOffset(),
-                    dataMemory,eepromMemory.getOffset()
-                    ,eepromMemory.getSize());
+            accessibleMemory.set(eepromMemory.getOffset(),eepromMemory.getOffset()+eepromMemory.getSize());
+            System.arraycopy(eepromMemory.getDataDefault(),0,
+                    dataMemory,eepromMemory.getOffset(),eepromMemory.getSize());
         }
-        return true;
+        return eepromBackup;
+    }
+
+    public RemovableMemory<EepromMemory> setEepromContent(RemovableMemory<EepromMemory> eeprom) {
+        if(!valid){
+            throw new RuntimeException("Cannot set MCU EEPROM!");
+        }
+        RemovableMemory<EepromMemory> eepromBackup= removeEepromMemory();
+        if (eeprom != null) {
+            if (eepromMemory != null) {
+                int[] data = eeprom.getData();
+                System.arraycopy(data, 0,
+                        dataMemory, eepromMemory.getOffset(), Math.min(data.length,eepromMemory.getSize()));
+            }else {
+                throw new RuntimeException("No EEPROM to write to!");
+            }
+        }
+        return eepromBackup;
+    }
+
+    public RemovableMemory<EepromMemory> clearEepromContent() {
+        if(!valid){
+            throw new RuntimeException("Cannot set MCU EEPROM!");
+        }
+        RemovableMemory<EepromMemory> eepromBackup= removeEepromMemory();
+        if (eepromMemory != null) {
+            System.arraycopy(eepromMemory.getDataDefault(), 0,
+                    dataMemory, eepromMemory.getOffset(), eepromMemory.getSize());
+        }else {
+            throw new RuntimeException("No EEPROM to clear!");
+        }
+        return eepromBackup;
+    }
+
+    public RemovableMemory<EepromMemory> setEepromContent(int[] data) {
+        if(!valid){
+            throw new RuntimeException("Cannot set MCU EEPROM!");
+        }
+        RemovableMemory<EepromMemory> eepromBackup= removeEepromMemory();
+        if (data != null) {
+            if (eepromMemory != null) {
+                System.arraycopy(data, 0,
+                        dataMemory, eepromMemory.getOffset(), Math.min(data.length,eepromMemory.getSize()));
+            }else {
+                throw new RuntimeException("No EEPROM to write to!");
+            }
+        }
+        return eepromBackup;
     }
 
     public RemovableMemory<EepromMemory> removeEepromMemory(){
         RemovableMemory<EepromMemory> removableMemory = getEepromMemory();
-        eepromMemory=null;
+        if(removableMemory!=null) {
+            accessibleMemory.clear(eepromMemory.getOffset(), eepromMemory.getOffset() + eepromMemory.getSize());
+            eepromMemory = null;
+        }
         return removableMemory;
     }
 
@@ -219,15 +259,14 @@ public class AvrCore {
         }
         int[] eeprom=new int[eepromMemory.getSize()];
         System.arraycopy(dataMemory,eepromMemory.getOffset(),eeprom,0,eeprom.length);
-        accessibleMemory.clear(eepromMemory.getOffset(),eepromMemory.getOffset()+eepromMemory.getSize());
         return RemovableMemory.makeWithoutCloning(eepromMemory,eeprom);
     }
     //endregion
 
     //region cpu registers
-    public boolean setCpuRegisters(int offset) {
+    public void setCpuRegisters(int offset) {
         if(offset<0 || dataMemory==null){
-            return false;
+            throw new RuntimeException("Cannot set MCU CPU Registers!");
         }
         if(cpuRegisters!=null) {
             removeRegistersBindings(cpuRegisters);
@@ -235,13 +274,12 @@ public class AvrCore {
 
         CPU_Registers cpu=new CPU_Registers(offset,dataMemory.length-1);
         if(cpu.getOffset()+cpu.getSize()>ioMemory.getOffset()+ioMemory.getSize()){
-            return false;
+            throw new RuntimeException("Cannot set MCU CPU Registers, outside of range!");
         }
         if(putRegistersBindings(cpu,"CPU")){
             cpuRegisters=cpu;
         }
         checkValid();
-        return true;
     }
 
     public CPU_Registers getCpuRegisters() {
@@ -250,23 +288,8 @@ public class AvrCore {
     //endregion
 
     //region programMemory
-    public void setProgramMemoryArrayList(ArrayList<String> lines) throws Exception {
-        this.programMemory = new ProgramMemory(this, lines);
-        checkValid();
-    }
-
-    public void setProgramMemoryString(String lines) throws Exception {
-        this.programMemory = new ProgramMemory(this, lines.split("\\n"));
-        checkValid();
-    }
-
-    public void setProgramMemory(String... lines) throws Exception {
-        this.programMemory = new ProgramMemory(this, lines);
-        checkValid();
-    }
-
-    public void setProgramMemory(int length) {
-        this.programMemory = new ProgramMemory(this,length);
+    public void setProgramMemory(ProgramMemory programMemory) {
+        this.programMemory = programMemory;
         checkValid();
     }
 
@@ -388,6 +411,32 @@ public class AvrCore {
         return map;
     }
 
+    public boolean restoreRegistersBindings(I_RegisterPackage registerPackage) {
+        return restoreRegistersBindings(registerPackage,registerPackage.getClass().getSimpleName()+registerPackage.hashCode());
+    }
+
+    public boolean restoreRegistersBindings(I_RegisterPackage registerPackage, String prefix, String postfix) {
+        return restoreRegistersBindings(registerPackage,prefix + registerPackage.getClass().getSimpleName() + postfix);
+    }
+
+    public boolean restoreRegistersBindings(I_RegisterPackage registerPackage, String name) {
+        if(accessibleMemory.get(registerPackage.getOffset(),registerPackage.getOffset()+registerPackage.getSize()).isEmpty()) {
+            TreeMap<Integer,I_Interrupt> interrupts=registerPackage.interrupts();
+            if(interrupts!=null) {
+                for (Integer key : interrupts.keySet()) {
+                    if(this.interrupts.containsKey(key)){
+                        throw new IllegalArgumentException("Overlapping interrupt vector");
+                    }
+                }
+                this.interrupts.putAll(interrupts);
+            }
+            packages.put(name,registerPackage);
+            accessibleMemory.set(registerPackage.getOffset(), registerPackage.getOffset() + registerPackage.getSize());
+            return true;
+        }
+        return false;
+    }
+
     public boolean putRegistersBindings(I_RegisterPackage registerPackage) {
         return putRegistersBindings(registerPackage,registerPackage.getClass().getSimpleName()+registerPackage.hashCode());
     }
@@ -398,22 +447,21 @@ public class AvrCore {
 
     public boolean putRegistersBindings(I_RegisterPackage registerPackage, String name) {
         if(accessibleMemory.get(registerPackage.getOffset(),registerPackage.getOffset()+registerPackage.getSize()).isEmpty()) {
-            TreeMap<Integer,I_Interrupt> i=registerPackage.interrupts();
-            if(i!=null) {
-                for (Integer key : i.keySet()) {
-                    if(interrupts.containsKey(key)){
-                        return false;
+            TreeMap<Integer,I_Interrupt> interrupts=registerPackage.interrupts();
+            if(interrupts!=null) {
+                for (Integer key : interrupts.keySet()) {
+                    if(this.interrupts.containsKey(key)){
+                        throw new IllegalArgumentException("Overlapping interrupt vector");
                     }
                 }
-                interrupts.putAll(i);
+                this.interrupts.putAll(interrupts);
             }
             packages.put(name,registerPackage);
             accessibleMemory.set(registerPackage.getOffset(), registerPackage.getOffset() + registerPackage.getSize());
             System.arraycopy(registerPackage.getDataDefault(),0,dataMemory,registerPackage.getOffset(),registerPackage.getSize());
-        }else{
-            return false;
+            return true;
         }
-        return true;
+        return false;
     }
 
     public boolean removeRegistersBindings(I_RegisterPackage registerPackage) {
@@ -435,6 +483,7 @@ public class AvrCore {
             }
             packages.remove(name);
             accessibleMemory.clear(registerPackage.getOffset(), registerPackage.getOffset() + registerPackage.getSize());
+            //no cleanup required, data inaccessible, just do it?
             return true;
         }
         return false;
@@ -743,6 +792,6 @@ public class AvrCore {
         if((dataMemory[cpuRegisters.SREG] & CPU_Registers.I) != 0) {
             handleInterrupts();
         }
-        return instructionRegistry.getInstruction(getInstructionID()).execute(this);
+        return instructionRegistry.getInstruction(programMemory.instructions[programCounter]).execute(this);
     }
 }
