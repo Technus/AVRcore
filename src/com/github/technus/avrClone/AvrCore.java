@@ -806,9 +806,16 @@ public class AvrCore {
         interrupts.clear();
     }
 
-    public void handleInterrupts(){
+    public void interruptsHandle() throws IndexOutOfBoundsException,NullPointerException{
+        if ((dataMemory[cpuRegisters.SREG] & CPU_Registers.I) != 0) {
+            interruptsCycleForce();
+        }
+    }
+
+    public void interruptsCycleForce(){
         for(I_Interrupt interrupt:interrupts.values()) {
             if (interrupt.tryInterrupt(this)) {//if cool and good
+                asleep=false;
                 pushValue(programCounter);
                 programCounter = interrupt.getVector();
                 dataMemory[cpuRegisters.SREG] &= CPU_Registers._I;
@@ -817,20 +824,14 @@ public class AvrCore {
     }
     //endregion
 
-    public void interruptsCycle() throws IndexOutOfBoundsException,NullPointerException{
-        if ((dataMemory[cpuRegisters.SREG] & CPU_Registers.I) != 0) {
-            handleInterrupts();
-        }
-    }
-
-    public ExecutionEvent cpuCycle() throws IndexOutOfBoundsException,NullPointerException{
+    public ExecutionEvent cpuCycleForce() throws IndexOutOfBoundsException,NullPointerException{
         return instructionRegistry.getInstruction(programMemory.instructions[programCounter]).execute(this);
     }
 
     public ExecutionEvent cycle() throws IndexOutOfBoundsException,NullPointerException{
         if(active) {
-            interruptsCycle();
-            return asleep ? null : cpuCycle();
+            interruptsHandle();
+            return asleep ? null : cpuCycleForce();
         }
         return null;
     }

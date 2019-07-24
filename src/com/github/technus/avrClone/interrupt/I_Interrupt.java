@@ -6,7 +6,13 @@ import com.github.technus.avrClone.registerPackages.I_Register;
 public interface I_Interrupt extends I_Register {
     int getVector();
     boolean getTrigger(AvrCore core);
-    void setTrigger(AvrCore core, boolean value);
+    default void setTrigger(AvrCore core, boolean value){
+        if(value){
+            setTrigger(core);
+        }else {
+            clearTrigger(core);
+        }
+    }
     void setTrigger(AvrCore core);
     void clearTrigger(AvrCore core);
 
