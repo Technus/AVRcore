@@ -18,7 +18,7 @@ public class AvrCore {
 
     private InstructionRegistry instructionRegistry;//MCU CORE
     private boolean immersiveOperands;//MCU CURE
-    public boolean asleep,active=true;
+    public boolean awoken=true,active=true;
 
     public int programCounter = 0;//PC register
     public final int[] registerFile=new int[32];
@@ -815,7 +815,7 @@ public class AvrCore {
     public void interruptsCycleForce(){
         for(I_Interrupt interrupt:interrupts.values()) {
             if (interrupt.tryInterrupt(this)) {//if cool and good
-                asleep=false;
+                awoken =true;
                 pushValue(programCounter);
                 programCounter = interrupt.getVector();
                 dataMemory[cpuRegisters.SREG] &= CPU_Registers._I;
@@ -831,7 +831,7 @@ public class AvrCore {
     public ExecutionEvent cycle() throws IndexOutOfBoundsException,NullPointerException{
         if(active) {
             interruptsHandle();
-            return asleep ? null : cpuCycleForce();
+            return awoken ? cpuCycleForce() : null;
         }
         return null;
     }
