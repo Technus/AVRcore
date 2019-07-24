@@ -169,6 +169,34 @@ public class AvrCore {
         return accessibleMemory.nextClearBit(offset)>=offset+size;
     }
 
+    public RemovableMemory<EepromMemory> blockEepromMemory(){
+        RemovableMemory<EepromMemory> removableMemory = getEepromMemory();
+        if(removableMemory!=null) {
+            accessibleMemory.clear(eepromMemory.getOffset(), eepromMemory.getOffset() + eepromMemory.getSize());
+        }
+        return removableMemory;
+    }
+
+    public RemovableMemory<EepromMemory> unblockEepromMemory(){
+        RemovableMemory<EepromMemory> removableMemory = getEepromMemory();
+        if(removableMemory!=null) {
+            accessibleMemory.set(eepromMemory.getOffset(), eepromMemory.getOffset() + eepromMemory.getSize());
+        }
+        return removableMemory;
+    }
+
+    public RemovableMemory<EepromMemory> restoreEepromDefinition(EepromMemory eeprom) {
+        if(!valid){
+            throw new RuntimeException("Cannot set MCU EEPROM!");
+        }
+        RemovableMemory<EepromMemory> eepromBackup= removeEepromMemory();
+        if(eeprom!=null){
+            eepromMemory=eeprom;
+            accessibleMemory.set(eepromMemory.getOffset(),eepromMemory.getOffset()+eepromMemory.getSize());
+        }
+        return eepromBackup;
+    }
+
     public RemovableMemory<EepromMemory> setEepromDefinition(EepromMemory eeprom) {
         if(!valid){
             throw new RuntimeException("Cannot set MCU EEPROM!");
