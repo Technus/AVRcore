@@ -14,14 +14,16 @@ import com.github.technus.avrClone.registerPackages.RegisterFileSingles;
 import java.util.*;
 
 public class AvrCore {
+
+
     private volatile boolean valid=false;
 
     private InstructionRegistry instructionRegistry;//MCU CORE
     private boolean immersiveOperands;//MCU CURE
 
-    public volatile int programCounter = 0;//PC register
+    public int programCounter = 0;//PC register
     public final int[] registerFile=new int[32];
-    public volatile int[] dataMemory;
+    public int[] dataMemory;
     private BitSet accessibleMemory;
 
     private ProgramMemory programMemory;//PROGRAM FLASH

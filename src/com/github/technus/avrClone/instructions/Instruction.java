@@ -1,6 +1,7 @@
 package com.github.technus.avrClone.instructions;
 
 import com.github.technus.avrClone.AvrCore;
+import com.github.technus.avrClone.instructions.exceptions.*;
 import com.github.technus.avrClone.memory.program.*;
 import com.github.technus.avrClone.compiler.ProgramCompiler;
 import com.github.technus.avrClone.registerPackages.CPU_Registers;
@@ -21,7 +22,7 @@ public abstract class Instruction implements I_Instruction {
             NULL = new Instruction("NULL",false) {
                 @Override
                 public ExecutionEvent execute(AvrCore core) {
-                    return new ExecutionEvent(core,core.programCounter+1,this);
+                    return new ExecutionEvent(core.programCounter++,this,null);
                 }
             },
             ADC = new Instruction("ADC",true, R, R) {
@@ -338,7 +339,7 @@ public abstract class Instruction implements I_Instruction {
             BREAK = new Instruction("BREAK",true) {
                 @Override
                 public ExecutionEvent execute(AvrCore core) {
-                    return new ExecutionEvent(core,core.programCounter+1,this);
+                    return new ExecutionEvent(core.programCounter++,this,new DebugEvent("Breakpoint!"));
                 }
             },
             BREQ = new Instruction("BREQ",true, S7) {
@@ -1039,7 +1040,8 @@ public abstract class Instruction implements I_Instruction {
 
                 @Override
                 public ExecutionEvent execute(AvrCore core) {
-                    throw new IllegalAccessError("This LD is only a dummy! " + (core.programCounter++));
+                    return new ExecutionEvent(core.programCounter,this,
+                            new InvalidMnemonic("This LD is only a dummy! " + core.programCounter));
                 }
             },
             LDX = new Instruction("LDX",true, R, K1pointer) {
@@ -1398,7 +1400,7 @@ public abstract class Instruction implements I_Instruction {
             NOPT = new Instruction("NOPT",false,K32) {//can use sleep and next tick interrupt
                 @Override
                 public ExecutionEvent execute(AvrCore core) {
-                    return new ExecutionEvent(core,core.programCounter+1, this, core.getOperand0());
+                    return new ExecutionEvent(core.programCounter++, this,new DelayEvent("Delay!"), core.getOperand0());
                 }
             },
             OR = new Instruction("OR",true, R, R) {
@@ -1797,7 +1799,7 @@ public abstract class Instruction implements I_Instruction {
             },
             SLEEP = new Instruction("SLEEP",true) {
                 public ExecutionEvent execute(AvrCore core) {
-                    return new ExecutionEvent(core,core.programCounter+1,this);
+                    return new ExecutionEvent(core.programCounter++,this,new SleepEvent("Sleep!"));
                 }
             },
             SPM = new Instruction("SPM",true) {
@@ -1807,7 +1809,8 @@ public abstract class Instruction implements I_Instruction {
                 }
 
                 public ExecutionEvent execute(AvrCore core) {
-                    throw new NoSuchMethodError("Self Programming is DISABLED " + (core.programCounter++));
+                    return new ExecutionEvent(core.programCounter,this,
+                            new InvalidMnemonic("This SPM is only a dummy! " + (core.programCounter++)));
                 }
             },
             ST = new Instruction("ST",true) {
@@ -1818,7 +1821,8 @@ public abstract class Instruction implements I_Instruction {
 
                 @Override
                 public ExecutionEvent execute(AvrCore core) {
-                    throw new IllegalAccessError("This ST is only a dummy! " + (core.programCounter++));
+                    return new ExecutionEvent(core.programCounter,this,
+                            new InvalidMnemonic("This ST is only a dummy! " + (core.programCounter++)));
                 }
             },
             STX = new Instruction("STX",true, K1pointer, R) {
@@ -2068,7 +2072,7 @@ public abstract class Instruction implements I_Instruction {
             WDR = new Instruction("WDR",true) {
                 @Override
                 public ExecutionEvent execute(AvrCore core) {
-                    return new ExecutionEvent(core,core.programCounter+1,this);
+                    return new ExecutionEvent(core.programCounter++,this,new WatchdogEvent("Reset watchdog!"));
                 }
             },
             XCH = new Instruction("XCH",true,Z, R) {
@@ -2293,13 +2297,13 @@ public abstract class Instruction implements I_Instruction {
             WRITE = new Instruction("WRITE",false) {
                 @Override
                 public ExecutionEvent execute(AvrCore core) {
-                    return new ExecutionEvent(core,core.programCounter+1,this);
+                    return new ExecutionEvent(core.programCounter++,this,new WriteEvent("Write!"));
                 }
             },
             READ = new Instruction("READ",false) {
                 @Override
                 public ExecutionEvent execute(AvrCore core) {
-                    return new ExecutionEvent(core,core.programCounter+1, this);
+                    return new ExecutionEvent(core.programCounter++, this,new ReadEvent("Read!"));
                 }
             },
             DES = new Instruction("DES",false) {
