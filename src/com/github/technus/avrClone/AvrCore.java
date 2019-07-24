@@ -14,12 +14,11 @@ import com.github.technus.avrClone.registerPackages.RegisterFileSingles;
 import java.util.*;
 
 public class AvrCore {
-
-
     private volatile boolean valid=false;
 
     private InstructionRegistry instructionRegistry;//MCU CORE
     private boolean immersiveOperands;//MCU CURE
+    private boolean asleep,halted;
 
     public int programCounter = 0;//PC register
     public final int[] registerFile=new int[32];
@@ -819,9 +818,30 @@ public class AvrCore {
     //endregion
 
     public ExecutionEvent cpuCycle() throws IndexOutOfBoundsException,NullPointerException{
-        if((dataMemory[cpuRegisters.SREG] & CPU_Registers.I) != 0) {
-            handleInterrupts();
+        if(!halted) {
+            if ((dataMemory[cpuRegisters.SREG] & CPU_Registers.I) != 0) {
+                handleInterrupts();
+            }
+            if (!asleep) {
+                return instructionRegistry.getInstruction(programMemory.instructions[programCounter]).execute(this);
+            }
         }
-        return instructionRegistry.getInstruction(programMemory.instructions[programCounter]).execute(this);
+        return null;
+    }
+
+    public boolean isAsleep() {
+        return asleep;
+    }
+
+    public void setAsleep(boolean asleep) {
+        this.asleep = asleep;
+    }
+
+    public boolean isHalted() {
+        return halted;
+    }
+
+    public void setHalted(boolean halted) {
+        this.halted = halted;
     }
 }

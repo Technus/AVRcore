@@ -1,9 +1,9 @@
 package com.github.technus.avrClone.instructions;
 
 import com.github.technus.avrClone.AvrCore;
+import com.github.technus.avrClone.compiler.ProgramCompiler;
 import com.github.technus.avrClone.instructions.exceptions.*;
 import com.github.technus.avrClone.memory.program.*;
-import com.github.technus.avrClone.compiler.ProgramCompiler;
 import com.github.technus.avrClone.registerPackages.CPU_Registers;
 import com.github.technus.avrClone.registerPackages.RegisterFileSingles;
 import jpsam3hklam9.des.DES;
@@ -22,7 +22,7 @@ public abstract class Instruction implements I_Instruction {
             NULL = new Instruction("NULL",false) {
                 @Override
                 public ExecutionEvent execute(AvrCore core) {
-                    return new ExecutionEvent(core.programCounter++,this,null);
+                    return new ExecutionEvent(core.programCounter++,this,new DebugEvent("NULL!"));
                 }
             },
             ADC = new Instruction("ADC",true, R, R) {
@@ -339,7 +339,7 @@ public abstract class Instruction implements I_Instruction {
             BREAK = new Instruction("BREAK",true) {
                 @Override
                 public ExecutionEvent execute(AvrCore core) {
-                    return new ExecutionEvent(core.programCounter++,this,new DebugEvent("Breakpoint!"));
+                    return new ExecutionEvent(core.programCounter++,this,new DebugEvent("BREAK!"));
                 }
             },
             BREQ = new Instruction("BREQ",true, S7) {
@@ -1397,10 +1397,16 @@ public abstract class Instruction implements I_Instruction {
                     return null;
                 }
             },
-            NOPT = new Instruction("NOPT",false,K32) {//can use sleep and next tick interrupt
+            NOPT = new Instruction("NOPT",false,R) {//can use sleep and next tick interrupt
                 @Override
                 public ExecutionEvent execute(AvrCore core) {
-                    return new ExecutionEvent(core.programCounter++, this,new DelayEvent("Delay!"), core.getOperand0());
+                    return new ExecutionEvent(core.programCounter++, this,new DelayEvent("NOPT!"), core.getRegisterValue(core.getOperand0()));
+                }
+            },
+            NOPTI = new Instruction("NOPTI",false,K32) {//can use sleep and next tick interrupt
+                @Override
+                public ExecutionEvent execute(AvrCore core) {
+                    return new ExecutionEvent(core.programCounter++, this,new DelayEvent("NOPTI!"), core.getOperand0());
                 }
             },
             OR = new Instruction("OR",true, R, R) {
@@ -1799,7 +1805,9 @@ public abstract class Instruction implements I_Instruction {
             },
             SLEEP = new Instruction("SLEEP",true) {
                 public ExecutionEvent execute(AvrCore core) {
-                    return new ExecutionEvent(core.programCounter++,this,new SleepEvent("Sleep!"));
+                    core.setAsleep(true);
+                    core.programCounter++;
+                    return null;
                 }
             },
             SPM = new Instruction("SPM",true) {
@@ -2072,7 +2080,7 @@ public abstract class Instruction implements I_Instruction {
             WDR = new Instruction("WDR",true) {
                 @Override
                 public ExecutionEvent execute(AvrCore core) {
-                    return new ExecutionEvent(core.programCounter++,this,new WatchdogEvent("Reset watchdog!"));
+                    return new ExecutionEvent(core.programCounter++,this,new WatchdogEvent("WDR!"));
                 }
             },
             XCH = new Instruction("XCH",true,Z, R) {
@@ -2297,13 +2305,13 @@ public abstract class Instruction implements I_Instruction {
             WRITE = new Instruction("WRITE",false) {
                 @Override
                 public ExecutionEvent execute(AvrCore core) {
-                    return new ExecutionEvent(core.programCounter++,this,new WriteEvent("Write!"));
+                    return new ExecutionEvent(core.programCounter++,this,new WriteEvent("WRITE!"));
                 }
             },
             READ = new Instruction("READ",false) {
                 @Override
                 public ExecutionEvent execute(AvrCore core) {
-                    return new ExecutionEvent(core.programCounter++, this,new ReadEvent("Read!"));
+                    return new ExecutionEvent(core.programCounter++, this,new ReadEvent("READ!"));
                 }
             },
             DES = new Instruction("DES",false) {
