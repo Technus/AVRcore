@@ -817,14 +817,22 @@ public class AvrCore {
     }
     //endregion
 
-    public ExecutionEvent cpuCycle() throws IndexOutOfBoundsException,NullPointerException{
+    public void interruptsCycle() throws IndexOutOfBoundsException,NullPointerException{
         if ((dataMemory[cpuRegisters.SREG] & CPU_Registers.I) != 0) {
             handleInterrupts();
         }
+    }
+
+    public ExecutionEvent cpuCycle() throws IndexOutOfBoundsException,NullPointerException{
         if (!asleep) {
             return instructionRegistry.getInstruction(programMemory.instructions[programCounter]).execute(this);
         }
         return null;
+    }
+
+    public ExecutionEvent cycle() throws IndexOutOfBoundsException,NullPointerException{
+        interruptsCycle();
+        return cpuCycle();
     }
 
     public boolean isAsleep() {

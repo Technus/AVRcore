@@ -164,7 +164,7 @@ public class AvrTest {
 
         stepButton.addActionListener(e -> {
             try {
-                ExecutionEvent event = core.cpuCycle();
+                ExecutionEvent event = core.cycle();
                 refreshRegistersDataPc();
                 if (event != null) {
                     JOptionPane.showMessageDialog(stepButton, event, "Execution event "+event.instruction.name()+"!", JOptionPane.INFORMATION_MESSAGE);
@@ -180,7 +180,7 @@ public class AvrTest {
                     ExecutionEvent event;
                     Long time=System.currentTimeMillis();
                     try {
-                        while ((event = core.cpuCycle()) == null && !Thread.currentThread().isInterrupted()) {
+                        while ((event = core.cycle()) == null && !Thread.currentThread().isInterrupted()) {
                             if(time+1000<System.currentTimeMillis()) {
                                 time+=1000;
                                 refreshRegistersDataPc();
