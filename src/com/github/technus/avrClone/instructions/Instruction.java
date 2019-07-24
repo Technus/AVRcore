@@ -1400,12 +1400,14 @@ public abstract class Instruction implements I_Instruction {
             NOPT = new Instruction("NOPT",false,R) {//can use sleep and next tick interrupt
                 @Override
                 public ExecutionEvent execute(AvrCore core) {
+                    core.awoken=false;
                     return new ExecutionEvent(core.programCounter++, this,new DelayEvent("NOPT!"), core.getRegisterValue(core.getOperand0()));
                 }
             },
             NOPTI = new Instruction("NOPTI",false,K32) {//can use sleep and next tick interrupt
                 @Override
                 public ExecutionEvent execute(AvrCore core) {
+                    core.awoken=false;
                     return new ExecutionEvent(core.programCounter++, this,new DelayEvent("NOPTI!"), core.getOperand0());
                 }
             },
