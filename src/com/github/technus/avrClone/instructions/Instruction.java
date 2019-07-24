@@ -1805,7 +1805,7 @@ public abstract class Instruction implements I_Instruction {
             },
             SLEEP = new Instruction("SLEEP",true) {
                 public ExecutionEvent execute(AvrCore core) {
-                    core.setAsleep(true);
+                    core.asleep=true;
                     core.programCounter++;
                     return null;
                 }
