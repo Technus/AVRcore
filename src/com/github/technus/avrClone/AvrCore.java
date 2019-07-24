@@ -18,7 +18,7 @@ public class AvrCore {
 
     private InstructionRegistry instructionRegistry;//MCU CORE
     private boolean immersiveOperands;//MCU CURE
-    private boolean asleep;
+    public boolean asleep,active=true;
 
     public int programCounter = 0;//PC register
     public final int[] registerFile=new int[32];
@@ -824,22 +824,14 @@ public class AvrCore {
     }
 
     public ExecutionEvent cpuCycle() throws IndexOutOfBoundsException,NullPointerException{
-        if (!asleep) {
-            return instructionRegistry.getInstruction(programMemory.instructions[programCounter]).execute(this);
-        }
-        return null;
+        return instructionRegistry.getInstruction(programMemory.instructions[programCounter]).execute(this);
     }
 
     public ExecutionEvent cycle() throws IndexOutOfBoundsException,NullPointerException{
-        interruptsCycle();
-        return cpuCycle();
-    }
-
-    public boolean isAsleep() {
-        return asleep;
-    }
-
-    public void setAsleep(boolean asleep) {
-        this.asleep = asleep;
+        if(active) {
+            interruptsCycle();
+            return asleep ? null : cpuCycle();
+        }
+        return null;
     }
 }
