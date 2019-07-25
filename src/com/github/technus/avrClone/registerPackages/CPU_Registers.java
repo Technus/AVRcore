@@ -76,8 +76,9 @@ public class CPU_Registers extends RegisterPackage {
             this.mask=1<<bit;
         }
 
+        @Override
         public int getOffset(CPU_Registers registers) {
-            return registers.getOffset();
+            return Register.SREG.getOffset(registers);
         }
 
         @Override
@@ -85,6 +86,7 @@ public class CPU_Registers extends RegisterPackage {
             return bit;
         }
 
+        @Override
         public int getBitMask() {
             return mask;
         }
