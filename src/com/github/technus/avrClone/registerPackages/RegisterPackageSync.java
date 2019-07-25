@@ -5,7 +5,7 @@ import com.github.technus.avrClone.interrupt.IInterrupt;
 import java.util.HashMap;
 import java.util.TreeMap;
 
-public abstract class RegisterPackageSync<T> implements IRegisterPackageSync<T> {
+public abstract class RegisterPackageSync implements IRegisterPackageSync {
     protected final HashMap<String,Integer> singles=new HashMap<>();
     protected final HashMap<Integer,String> names=new HashMap<>();
     protected final HashMap<String,Integer> pairs=new HashMap<>();
