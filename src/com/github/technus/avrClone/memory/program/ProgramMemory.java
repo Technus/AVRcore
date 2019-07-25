@@ -1,7 +1,7 @@
 package com.github.technus.avrClone.memory.program;
 
 import com.github.technus.avrClone.compiler.Line;
-import com.github.technus.avrClone.instructions.I_Instruction;
+import com.github.technus.avrClone.instructions.IInstruction;
 import com.github.technus.avrClone.instructions.InstructionRegistry;
 
 import java.io.PrintStream;
@@ -72,7 +72,7 @@ public class ProgramMemory implements Cloneable{
 
     public void print(PrintStream printStream){
         for(int i=0;i<instructions.length;i++){
-            I_Instruction instruction= registry.getInstruction(instructions[i]);
+            IInstruction instruction= registry.getInstruction(instructions[i]);
             switch (instruction.getOperandCount()){
                 case 0:
                     printStream.println(i+" : " +instruction.name());
@@ -96,7 +96,7 @@ public class ProgramMemory implements Cloneable{
         }
         StringBuilder stringBuilder=new StringBuilder();
         for(int i=0;i<instructions.length;i++){
-            I_Instruction instruction= registry.getInstruction(instructions[i]);
+            IInstruction instruction= registry.getInstruction(instructions[i]);
             switch (instruction.getOperandCount()){
                 case 0:
                     stringBuilder.append(instruction.name());
@@ -132,7 +132,7 @@ public class ProgramMemory implements Cloneable{
         StringBuilder stringBuilder=new StringBuilder();
         int lenOfLineNumbers=Integer.toString(instructions.length-1,radixLines).length();
         for(int i=0;i<instructions.length;i++){
-            I_Instruction instruction= registry.getInstruction(instructions[i]);
+            IInstruction instruction= registry.getInstruction(instructions[i]);
             stringBuilder.append(prefixLines).append(String.format("%1$-"+lenOfLineNumbers+"s",Integer.toString(i,radixLines))).append(" : ");
             switch (instruction.getOperandCount()){
                 case 0:

@@ -4,7 +4,7 @@ import com.github.technus.avrClone.AvrCore;
 import com.github.technus.avrClone.memory.program.ProgramException;
 import com.github.technus.avrClone.memory.program.ProgramMemory;
 
-public interface I_Instruction {
+public interface IInstruction {
     String name();
 
     /**

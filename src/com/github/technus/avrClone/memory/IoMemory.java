@@ -1,6 +1,6 @@
 package com.github.technus.avrClone.memory;
 
-public class IoMemory implements I_DataMemoryDefinition{
+public class IoMemory implements IDataMemoryDefinition {
     private final int size;
 
     public IoMemory(){

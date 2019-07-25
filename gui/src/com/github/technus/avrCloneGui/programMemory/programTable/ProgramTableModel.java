@@ -1,7 +1,7 @@
 package com.github.technus.avrCloneGui.programMemory.programTable;
 
 import com.github.technus.avrClone.AvrCore;
-import com.github.technus.avrClone.instructions.I_Instruction;
+import com.github.technus.avrClone.instructions.IInstruction;
 import com.github.technus.avrCloneGui.programMemory.IRefreshProgramMemoryView;
 
 import javax.swing.event.EventListenerList;
@@ -92,7 +92,7 @@ public class ProgramTableModel implements TableModel,IRefreshProgramMemoryView {
                 if(aValue instanceof Integer){
                     core.getProgramMemory().instructions[rowIndex]=(Integer) aValue;
                     refreshProgramMemoryView();
-                    I_Instruction instruction=core.getInstruction(rowIndex);
+                    IInstruction instruction=core.getInstruction(rowIndex);
                     if(instruction.getOperandCount()>0){
                         core.getProgramMemory().param0[rowIndex]=instruction.getLimit0().clamp((Integer) aValue,core.programCounter,core.isUsingImmersiveOperands());
                     }else{
@@ -106,7 +106,7 @@ public class ProgramTableModel implements TableModel,IRefreshProgramMemoryView {
                 }else{
                     aValue=core.getProgramMemory().instructions[rowIndex]=core.getInstructionRegistry().getID(aValue.toString().toUpperCase());
                     refreshProgramMemoryView();
-                    I_Instruction instruction=core.getInstruction(rowIndex);
+                    IInstruction instruction=core.getInstruction(rowIndex);
                     if(instruction.getOperandCount()>0){
                         core.getProgramMemory().param0[rowIndex]=instruction.getLimit0().clamp((Integer) aValue,core.programCounter,core.isUsingImmersiveOperands());
                     }else{
@@ -124,7 +124,7 @@ public class ProgramTableModel implements TableModel,IRefreshProgramMemoryView {
                 if(core.getProgramMemory()==null){
                     return;
                 }
-                I_Instruction instruction=core.getInstruction(rowIndex);
+                IInstruction instruction=core.getInstruction(rowIndex);
                 if(instruction.getOperandCount()>0){
                     core.getProgramMemory().param0[rowIndex]=instruction.getLimit0().clamp((Integer) aValue,core.programCounter,core.isUsingImmersiveOperands());
                 }else{
@@ -137,7 +137,7 @@ public class ProgramTableModel implements TableModel,IRefreshProgramMemoryView {
                 if(core.getProgramMemory()==null){
                     return;
                 }
-                I_Instruction instruction=core.getInstruction(rowIndex);
+                IInstruction instruction=core.getInstruction(rowIndex);
                 if(instruction.getOperandCount()>1){
                     core.getProgramMemory().param1[rowIndex]=instruction.getLimit1().clamp((Integer) aValue,core.programCounter,core.isUsingImmersiveOperands());
                 }else{

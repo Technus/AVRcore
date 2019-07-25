@@ -1,6 +1,6 @@
 package com.github.technus.avrClone.memory;
 
-public class SystemMemory implements I_DataMemoryDefinition,Cloneable{
+public class SystemMemory implements IDataMemoryDefinition,Cloneable{
     public final int size;
 
     public SystemMemory(){

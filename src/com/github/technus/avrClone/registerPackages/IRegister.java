@@ -1,6 +1,6 @@
 package com.github.technus.avrClone.registerPackages;
 
-public interface I_Register<T extends I_RegisterPackage> {
+public interface IRegister<T extends IRegisterPackage> {
     String name();
     int getOffset(T registerPackage);
 }

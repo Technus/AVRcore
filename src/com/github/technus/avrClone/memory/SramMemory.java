@@ -1,6 +1,6 @@
 package com.github.technus.avrClone.memory;
 
-public class SramMemory implements I_DataMemoryDefinition {
+public class SramMemory implements IDataMemoryDefinition {
     private final int size;
 
     public SramMemory(int ramSize){

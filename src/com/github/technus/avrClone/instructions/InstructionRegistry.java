@@ -29,14 +29,14 @@ public class InstructionRegistry {
     }
 
     private HashMap<String,Integer> instructionsMap=new HashMap<>();
-    private I_Instruction[] instructions;
+    private IInstruction[] instructions;
     private int instructionDefault;
 
     private String name;
 
-    public InstructionRegistry(ArrayList<? extends I_Instruction> array) throws InvalidMnemonic{
-        instructions=new I_Instruction[array.size()];
-        for(I_Instruction instructionAVRrc :array){
+    public InstructionRegistry(ArrayList<? extends IInstruction> array) throws InvalidMnemonic{
+        instructions=new IInstruction[array.size()];
+        for(IInstruction instructionAVRrc :array){
             addInstruction(instructionAVRrc);
         }
         REGISTRIES.add(this);
@@ -44,19 +44,19 @@ public class InstructionRegistry {
 
     public InstructionRegistry print(){
         for (int i = 0, instructionsLength = instructions.length; i < instructionsLength; i++) {
-            I_Instruction instruction = instructions[i];
+            IInstruction instruction = instructions[i];
             System.out.println(instruction.name() + " " + i);
         }
         return this;
     }
 
-    public InstructionRegistry setInstructionDefaultAndName(I_Instruction instructionDefault,String name) {
+    public InstructionRegistry setInstructionDefaultAndName(IInstruction instructionDefault, String name) {
         this.instructionDefault = getID(instructionDefault.name());
         this.name=name;
         return this;
     }
 
-    public void addInstruction(I_Instruction instruction) throws InvalidMnemonic{
+    public void addInstruction(IInstruction instruction) throws InvalidMnemonic{
         int id=instructionsMap.size();
         if(instructionsMap.put(instruction.name(),id)!=null){
             throw new InvalidMnemonic("Duplicate instruction "+instruction.name());
@@ -64,11 +64,11 @@ public class InstructionRegistry {
         instructions[id]=instruction;
     }
 
-    public I_Instruction getInstruction(int id){
+    public IInstruction getInstruction(int id){
         return instructions[id];
     }
 
-    public I_Instruction getInstructionSlowly(String name){
+    public IInstruction getInstructionSlowly(String name){
         return instructions[instructionsMap.get(name)];
     }
 
@@ -82,7 +82,7 @@ public class InstructionRegistry {
         return id;
     }
 
-    public I_Instruction[] getInstructions() {
+    public IInstruction[] getInstructions() {
         return instructions.clone();
     }
 

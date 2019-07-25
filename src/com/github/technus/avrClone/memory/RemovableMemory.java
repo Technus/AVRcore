@@ -1,6 +1,6 @@
 package com.github.technus.avrClone.memory;
 
-public class RemovableMemory<T extends I_DataMemoryDefinition> implements I_DataMemoryInstance{
+public class RemovableMemory<T extends IDataMemoryDefinition> implements IDataMemoryInstance {
     private final int[] data;
     private final int offset;
     private T definition;
@@ -25,7 +25,7 @@ public class RemovableMemory<T extends I_DataMemoryDefinition> implements I_Data
         this.offset=offset;
     }
 
-    public static <T extends I_DataMemoryDefinition> RemovableMemory<T> makeWithoutCloning(T definition, int... data){
+    public static <T extends IDataMemoryDefinition> RemovableMemory<T> makeWithoutCloning(T definition, int... data){
         if(definition==null || data==null || data.length!=definition.getSize()){
             return null;
         }
@@ -43,7 +43,7 @@ public class RemovableMemory<T extends I_DataMemoryDefinition> implements I_Data
         }
     }
 
-    public static <T extends I_DataMemoryDefinition> RemovableMemory<T> make(T definition,int... data){
+    public static <T extends IDataMemoryDefinition> RemovableMemory<T> make(T definition, int... data){
         if(definition==null || data==null || data.length>definition.getSize()){
             return null;
         }

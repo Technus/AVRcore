@@ -16,7 +16,7 @@ public class SourceCollection {
     private HashSet<String> userDirectories=new HashSet<>();
     private HashMap<String,String> paths=new HashMap<>();
 
-    private IncludeProcessor currentIncludeProcessor;
+    private IIncludeProcessor currentIncludeProcessor;
     private HashMap<String,ArrayList<String>> includedFiles;
 
     public SourceCollection(){
@@ -27,11 +27,11 @@ public class SourceCollection {
         includedFiles=new HashMap<>(8);
     }
 
-    public void setCurrentIncludeProcessor(IncludeProcessor include) {
+    public void setCurrentIncludeProcessor(IIncludeProcessor include) {
         this.currentIncludeProcessor = include;
     }
 
-    public IncludeProcessor getCurrentIncludeProcessor() {
+    public IIncludeProcessor getCurrentIncludeProcessor() {
         return currentIncludeProcessor;
     }
 

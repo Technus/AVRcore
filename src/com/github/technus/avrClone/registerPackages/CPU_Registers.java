@@ -1,6 +1,6 @@
 package com.github.technus.avrClone.registerPackages;
 
-import com.github.technus.avrClone.interrupt.I_Interrupt;
+import com.github.technus.avrClone.interrupt.IInterrupt;
 
 import java.util.TreeMap;
 
@@ -47,7 +47,7 @@ public class CPU_Registers extends RegistersPackage{
         return dataDefault;
     }
 
-    public enum Register implements I_Register<CPU_Registers> {
+    public enum Register implements IRegister<CPU_Registers> {
         //lets assume the core doesn't need more than 64bit addressing space...
         //RAMPD(0x08),RAMPX(0x09),RAMPY(0x0a),RAMPZ(0x0b),
         //EIND(0x0c),
@@ -67,7 +67,7 @@ public class CPU_Registers extends RegistersPackage{
         }
     }
 
-    public enum RegisterBit implements I_RegisterBit<CPU_Registers> {
+    public enum RegisterBit implements IRegisterBit<CPU_Registers> {
         C,Z,N,V,S,H,T,I,H1,H2,H3,H4,H5,H6,H7,H8,U;
         public final int bit,mask;
 
@@ -91,7 +91,7 @@ public class CPU_Registers extends RegistersPackage{
     }
 
     @Override
-    public TreeMap<Integer, I_Interrupt> interrupts() {
+    public TreeMap<Integer, IInterrupt> interrupts() {
         return null;
     }
 }

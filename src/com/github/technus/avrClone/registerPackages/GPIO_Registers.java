@@ -1,6 +1,6 @@
 package com.github.technus.avrClone.registerPackages;
 
-import com.github.technus.avrClone.interrupt.I_Interrupt;
+import com.github.technus.avrClone.interrupt.IInterrupt;
 
 import java.util.TreeMap;
 
@@ -13,7 +13,7 @@ public class GPIO_Registers extends RegistersPackage{
         }
     }
 
-    public enum Register implements I_Register<GPIO_Registers> {
+    public enum Register implements IRegister<GPIO_Registers> {
         GPIOR0(), GPIOR1(), GPIOR2(), GPIOR3(),
         GPIOR4(), GPIOR5(), GPIOR6(), GPIOR7(),
         GPIOR8(), GPIOR9(), GPIOR10(),GPIOR11(),
@@ -26,7 +26,7 @@ public class GPIO_Registers extends RegistersPackage{
     }
 
     @Override
-    public TreeMap<Integer, I_Interrupt> interrupts() {
+    public TreeMap<Integer, IInterrupt> interrupts() {
         return null;
     }
 }

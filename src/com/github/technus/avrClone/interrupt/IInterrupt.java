@@ -1,9 +1,9 @@
 package com.github.technus.avrClone.interrupt;
 
 import com.github.technus.avrClone.AvrCore;
-import com.github.technus.avrClone.registerPackages.I_Register;
+import com.github.technus.avrClone.registerPackages.IRegister;
 
-public interface I_Interrupt extends I_Register {
+public interface IInterrupt extends IRegister {
     int getVector();
     boolean getTrigger(AvrCore core);
     default void setTrigger(AvrCore core, boolean value){

@@ -1,6 +1,6 @@
 package com.github.technus.avrClone.memory;
 
-public class EepromMemory implements I_DataMemoryDefinition{
+public class EepromMemory implements IDataMemoryDefinition {
     private final int size;
 
     public static EepromMemory make(int size){

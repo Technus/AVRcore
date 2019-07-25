@@ -10,8 +10,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 
-public interface IncludeProcessor {
-    IncludeProcessor DUMB_FILE_SYSTEM_INCLUDE_PROCESSOR = (parentIncludePath, includeName, includePath, systemDirectories, userDirectories, includedFilePaths) -> {
+public interface IIncludeProcessor {
+    IIncludeProcessor DUMB_FILE_SYSTEM_INCLUDE_PROCESSOR = (parentIncludePath, includeName, includePath, systemDirectories, userDirectories, includedFilePaths) -> {
         File f=new File(includeName);
         if(!f.isFile()){
             throw new InvalidInclude("File does not exist! "+includeName);
@@ -26,7 +26,7 @@ public interface IncludeProcessor {
             throw new InvalidInclude("Failed to read file! "+includeName,e);
         }
     };
-    IncludeProcessor ABSOLUTE_FILE_SYSTEM_INCLUDE_PROCESSOR = (parentIncludePath, includeName, includePath, systemDirectories, userDirectories, includedFilePaths) -> {
+    IIncludeProcessor ABSOLUTE_FILE_SYSTEM_INCLUDE_PROCESSOR = (parentIncludePath, includeName, includePath, systemDirectories, userDirectories, includedFilePaths) -> {
         File f=new File(includeName);
         if(!f.getAbsolutePath().equals(includeName)){
             throw new InvalidInclude("Cannot resolve as absolute path! "+includeName);
@@ -44,7 +44,7 @@ public interface IncludeProcessor {
             throw new InvalidInclude("Failed to read file! "+includeName,e);
         }
     };
-    IncludeProcessor RELATIVE_FILE_SYSTEM_INCLUDE_PROCESSOR = (parentIncludePath, includeName, includePath, systemDirectories, userDirectories, includedFilePaths) -> {
+    IIncludeProcessor RELATIVE_FILE_SYSTEM_INCLUDE_PROCESSOR = (parentIncludePath, includeName, includePath, systemDirectories, userDirectories, includedFilePaths) -> {
         if(parentIncludePath.length()==0){
             return ABSOLUTE_FILE_SYSTEM_INCLUDE_PROCESSOR.include(parentIncludePath, includeName, includePath, systemDirectories, userDirectories, includedFilePaths);
         }else {
@@ -74,7 +74,7 @@ public interface IncludeProcessor {
             }
         }
     };
-    IncludeProcessor SYSTEM_FILE_SYSTEM_INCLUDE_PROCESSOR = (parentIncludePath, includeName, includePath, systemDirectories, userDirectories, includedFilePaths) -> {
+    IIncludeProcessor SYSTEM_FILE_SYSTEM_INCLUDE_PROCESSOR = (parentIncludePath, includeName, includePath, systemDirectories, userDirectories, includedFilePaths) -> {
         for (String dir : systemDirectories) {
             File d=new File(dir);
             if(d.isFile()){
@@ -99,7 +99,7 @@ public interface IncludeProcessor {
         }
         return ABSOLUTE_FILE_SYSTEM_INCLUDE_PROCESSOR.include(parentIncludePath, includeName, includePath, systemDirectories, userDirectories, includedFilePaths);
     };
-    IncludeProcessor GLOBAL_FILE_SYSTEM_INCLUDE_PROCESSOR = (parentIncludePath, includeName, includePath, systemDirectories, userDirectories, includedFilePaths) -> {
+    IIncludeProcessor GLOBAL_FILE_SYSTEM_INCLUDE_PROCESSOR = (parentIncludePath, includeName, includePath, systemDirectories, userDirectories, includedFilePaths) -> {
         for (String dir : userDirectories) {
             File d=new File(dir);
             if(d.isFile()){
@@ -146,7 +146,7 @@ public interface IncludeProcessor {
         }
         return ABSOLUTE_FILE_SYSTEM_INCLUDE_PROCESSOR.include(parentIncludePath, includeName, includePath, systemDirectories, userDirectories, includedFilePaths);
     };
-    IncludeProcessor FILE_SYSTEM_INCLUDE_PROCESSOR = (parentIncludePath, includeName, includePath, systemDirectories, userDirectories, includedFilePaths) -> {
+    IIncludeProcessor FILE_SYSTEM_INCLUDE_PROCESSOR = (parentIncludePath, includeName, includePath, systemDirectories, userDirectories, includedFilePaths) -> {
         if(includeName.startsWith("\"") && includeName.endsWith("\"")){
             includeName=includeName.replaceFirst("^\"(.*)\"$","$1");
             try{

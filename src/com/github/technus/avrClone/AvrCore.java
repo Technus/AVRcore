@@ -1,13 +1,13 @@
 package com.github.technus.avrClone;
 
 import com.github.technus.avrClone.instructions.ExecutionEvent;
-import com.github.technus.avrClone.instructions.I_Instruction;
+import com.github.technus.avrClone.instructions.IInstruction;
 import com.github.technus.avrClone.instructions.InstructionRegistry;
-import com.github.technus.avrClone.interrupt.I_Interrupt;
+import com.github.technus.avrClone.interrupt.IInterrupt;
 import com.github.technus.avrClone.memory.*;
 import com.github.technus.avrClone.memory.program.ProgramMemory;
 import com.github.technus.avrClone.registerPackages.CPU_Registers;
-import com.github.technus.avrClone.registerPackages.I_RegisterPackage;
+import com.github.technus.avrClone.registerPackages.IRegisterPackage;
 import com.github.technus.avrClone.registerPackages.RegisterFilePairs;
 import com.github.technus.avrClone.registerPackages.RegisterFileSingles;
 
@@ -33,9 +33,9 @@ public class AvrCore {
     private EepromMemory eepromMemory;//EEPROM
 
     private CPU_Registers cpuRegisters;
-    private final HashMap<String, I_RegisterPackage> packages = new HashMap<>();
+    private final HashMap<String, IRegisterPackage> packages = new HashMap<>();
 
-    private final TreeMap<Integer,I_Interrupt> interrupts = new TreeMap<>();
+    private final TreeMap<Integer, IInterrupt> interrupts = new TreeMap<>();
 
     public AvrCore(){}
 
@@ -153,7 +153,7 @@ public class AvrCore {
     }
 
     public void initDataMemoryDefaults(){
-        for(I_RegisterPackage pack:packages.values()){
+        for(IRegisterPackage pack:packages.values()){
             System.arraycopy(pack.getDataDefault(),0,dataMemory,pack.getOffset(),pack.getSize());
         }
     }
@@ -330,11 +330,11 @@ public class AvrCore {
         return programMemory.instructions.length;
     }
 
-    public I_Instruction getInstruction(){
+    public IInstruction getInstruction(){
         return instructionRegistry.getInstruction(programMemory.instructions[programCounter]);
     }
 
-    public I_Instruction getInstruction(int addr){
+    public IInstruction getInstruction(int addr){
         return instructionRegistry.getInstruction(programMemory.instructions[addr]);
     }
 
@@ -365,7 +365,7 @@ public class AvrCore {
 
     //region register package handlers
     public void removeAllPackages(){
-        for (Map.Entry<String,I_RegisterPackage> entry:packages.entrySet()) {
+        for (Map.Entry<String, IRegisterPackage> entry:packages.entrySet()) {
             removeRegistersBindings(entry.getValue(),entry.getKey());
         }
         clearInterruptsConfiguration();//to be sure...
@@ -373,8 +373,8 @@ public class AvrCore {
 
     public String getPackageName(int i){
         if(accessibleMemory.get(i)){
-            for(Map.Entry<String,I_RegisterPackage> entry:packages.entrySet()){
-                I_RegisterPackage registerPackage=entry.getValue();
+            for(Map.Entry<String, IRegisterPackage> entry:packages.entrySet()){
+                IRegisterPackage registerPackage=entry.getValue();
                 if(i<registerPackage.getOffset()+registerPackage.getSize() && i>=registerPackage.getOffset()){
                     return entry.getKey();
                 }
@@ -385,7 +385,7 @@ public class AvrCore {
 
     public String getDataName(int i){
         if(accessibleMemory.get(i)){
-            for(I_RegisterPackage registerPackage:packages.values()){
+            for(IRegisterPackage registerPackage:packages.values()){
                 String name=registerPackage.names().get(i);
                 if(name!=null){
                     return name;
@@ -440,17 +440,17 @@ public class AvrCore {
         return map;
     }
 
-    public boolean restoreRegistersBindings(I_RegisterPackage registerPackage) {
+    public boolean restoreRegistersBindings(IRegisterPackage registerPackage) {
         return restoreRegistersBindings(registerPackage,registerPackage.getClass().getSimpleName()+registerPackage.hashCode());
     }
 
-    public boolean restoreRegistersBindings(I_RegisterPackage registerPackage, String prefix, String postfix) {
+    public boolean restoreRegistersBindings(IRegisterPackage registerPackage, String prefix, String postfix) {
         return restoreRegistersBindings(registerPackage,prefix + registerPackage.getClass().getSimpleName() + postfix);
     }
 
-    public boolean restoreRegistersBindings(I_RegisterPackage registerPackage, String name) {
+    public boolean restoreRegistersBindings(IRegisterPackage registerPackage, String name) {
         if(accessibleMemory.get(registerPackage.getOffset(),registerPackage.getOffset()+registerPackage.getSize()).isEmpty()) {
-            TreeMap<Integer,I_Interrupt> interrupts=registerPackage.interrupts();
+            TreeMap<Integer, IInterrupt> interrupts=registerPackage.interrupts();
             if(interrupts!=null) {
                 for (Integer key : interrupts.keySet()) {
                     if(this.interrupts.containsKey(key)){
@@ -466,17 +466,17 @@ public class AvrCore {
         return false;
     }
 
-    public boolean putRegistersBindings(I_RegisterPackage registerPackage) {
+    public boolean putRegistersBindings(IRegisterPackage registerPackage) {
         return putRegistersBindings(registerPackage,registerPackage.getClass().getSimpleName()+registerPackage.hashCode());
     }
 
-    public boolean putRegistersBindings(I_RegisterPackage registerPackage, String prefix, String postfix) {
+    public boolean putRegistersBindings(IRegisterPackage registerPackage, String prefix, String postfix) {
         return putRegistersBindings(registerPackage,prefix + registerPackage.getClass().getSimpleName() + postfix);
     }
 
-    public boolean putRegistersBindings(I_RegisterPackage registerPackage, String name) {
+    public boolean putRegistersBindings(IRegisterPackage registerPackage, String name) {
         if(accessibleMemory.get(registerPackage.getOffset(),registerPackage.getOffset()+registerPackage.getSize()).isEmpty()) {
-            TreeMap<Integer,I_Interrupt> interrupts=registerPackage.interrupts();
+            TreeMap<Integer, IInterrupt> interrupts=registerPackage.interrupts();
             if(interrupts!=null) {
                 for (Integer key : interrupts.keySet()) {
                     if(this.interrupts.containsKey(key)){
@@ -493,18 +493,18 @@ public class AvrCore {
         return false;
     }
 
-    public boolean removeRegistersBindings(I_RegisterPackage registerPackage) {
+    public boolean removeRegistersBindings(IRegisterPackage registerPackage) {
         return removeRegistersBindings(registerPackage,registerPackage.getClass().getSimpleName()+registerPackage.hashCode());
     }
 
-    public boolean removeRegistersBindings(I_RegisterPackage registerPackage,String prefix,String postfix){
+    public boolean removeRegistersBindings(IRegisterPackage registerPackage, String prefix, String postfix){
         String name=prefix + registerPackage.getClass().getSimpleName() + postfix;
         return removeRegistersBindings(registerPackage,name);
     }
 
-    public boolean removeRegistersBindings(I_RegisterPackage registerPackage,String name){
+    public boolean removeRegistersBindings(IRegisterPackage registerPackage, String name){
         if(packages.containsKey(name)) {
-            TreeMap<Integer,I_Interrupt> i=registerPackage.interrupts();
+            TreeMap<Integer, IInterrupt> i=registerPackage.interrupts();
             if(i!=null) {
                 for (Integer key : i.keySet()) {
                     interrupts.remove(key);
@@ -813,7 +813,7 @@ public class AvrCore {
     }
 
     public void interruptsCycleForce(){
-        for(I_Interrupt interrupt:interrupts.values()) {
+        for(IInterrupt interrupt:interrupts.values()) {
             if (interrupt.tryInterrupt(this)) {//if cool and good
                 awoken =true;
                 pushValue(programCounter);

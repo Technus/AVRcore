@@ -13,7 +13,7 @@ import java.util.Random;
 
 import static com.github.technus.avrClone.instructions.OperandLimit.*;
 
-public abstract class Instruction implements I_Instruction {
+public abstract class Instruction implements IInstruction {
     public static Random random=new Random();
     public static final ArrayList<Instruction> INSTRUCTIONS_OP = new ArrayList<>();
     public static final ArrayList<Instruction> INSTRUCTIONS_IMMERSIVE = new ArrayList<>();

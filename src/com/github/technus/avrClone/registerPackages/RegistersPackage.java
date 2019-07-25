@@ -2,7 +2,7 @@ package com.github.technus.avrClone.registerPackages;
 
 import java.util.HashMap;
 
-public abstract class RegistersPackage implements I_RegisterPackage {
+public abstract class RegistersPackage implements IRegisterPackage {
     protected final HashMap<String,Integer> singles=new HashMap<>();
     protected final HashMap<Integer,String> names=new HashMap<>();
     protected final HashMap<String,Integer> pairs=new HashMap<>();

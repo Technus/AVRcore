@@ -3,12 +3,12 @@ package com.github.technus.avrCloneGui;
 import com.bulenkov.darcula.ui.DarculaTabbedPaneUI;
 import com.github.technus.avrClone.AvrCore;
 import com.github.technus.avrClone.compiler.Binding;
-import com.github.technus.avrClone.compiler.IncludeProcessor;
+import com.github.technus.avrClone.compiler.IIncludeProcessor;
 import com.github.technus.avrClone.compiler.ProgramCompiler;
 import com.github.technus.avrClone.compiler.exceptions.InvalidInclude;
 import com.github.technus.avrClone.compiler.js.CompilerBindings;
 import com.github.technus.avrClone.instructions.ExecutionEvent;
-import com.github.technus.avrClone.instructions.I_Instruction;
+import com.github.technus.avrClone.instructions.IInstruction;
 import com.github.technus.avrClone.instructions.InstructionRegistry;
 import com.github.technus.avrClone.instructions.OperandLimit;
 import com.github.technus.avrClone.memory.program.ProgramMemory;
@@ -37,7 +37,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Map;
 
-import static com.github.technus.avrClone.compiler.IncludeProcessor.*;
+import static com.github.technus.avrClone.compiler.IIncludeProcessor.*;
 
 public class AvrTest {
     private JEditorPane asm;
@@ -88,7 +88,7 @@ public class AvrTest {
     public AvrTest(AvrCore core,ProgramCompiler programCompiler) {
         this.core=core;
         this.programCompiler=programCompiler;
-        IncludeProcessor DIRECT_INCLUDE_PROCESSOR = (parentIncludePath, includeName, includePath, systemDirectories, userDirectories, includedFilePaths) -> {
+        IIncludeProcessor DIRECT_INCLUDE_PROCESSOR = (parentIncludePath, includeName, includePath, systemDirectories, userDirectories, includedFilePaths) -> {
             if (includeName.startsWith("\"") && includeName.endsWith("\"")) {
                 includeName = includeName.replaceFirst("^\"(.*)\"$", "$1");
                 try {
@@ -359,7 +359,7 @@ public class AvrTest {
     public void refreshWithInstructionRegistry(InstructionRegistry registry){
         if(core.getInstructionRegistry()!=null){
             StringBuilder stringBuilder=new StringBuilder();
-            for(I_Instruction instruction:registry.getInstructions()){
+            for(IInstruction instruction:registry.getInstructions()){
                 switch (instruction.getOperandCount()){
                     case 0:
                         stringBuilder.append(String.format("%1$-20s",instruction.name()));

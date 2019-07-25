@@ -1,6 +1,6 @@
 package com.github.technus.avrClone.memory;
 
-public interface I_DataMemoryDefinition {
+public interface IDataMemoryDefinition {
     int getOffset();
     int getSize();
     int[] getDataDefault();
