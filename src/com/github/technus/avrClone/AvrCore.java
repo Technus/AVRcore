@@ -8,8 +8,8 @@ import com.github.technus.avrClone.memory.*;
 import com.github.technus.avrClone.memory.program.ProgramMemory;
 import com.github.technus.avrClone.registerPackages.CPU_Registers;
 import com.github.technus.avrClone.registerPackages.IRegisterPackage;
-import com.github.technus.avrClone.registerPackages.RegisterFilePairs;
-import com.github.technus.avrClone.registerPackages.RegisterFileSingles;
+import com.github.technus.avrClone.registerFile.RegisterFilePairs;
+import com.github.technus.avrClone.registerFile.RegisterFileSingles;
 
 import java.util.*;
 

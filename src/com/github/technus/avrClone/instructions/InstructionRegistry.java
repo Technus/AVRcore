@@ -1,6 +1,6 @@
 package com.github.technus.avrClone.instructions;
 
-import com.github.technus.avrClone.memory.program.InvalidMnemonic;
+import com.github.technus.avrClone.memory.program.exceptions.InvalidMnemonic;
 
 import java.util.ArrayList;
 import java.util.HashMap;

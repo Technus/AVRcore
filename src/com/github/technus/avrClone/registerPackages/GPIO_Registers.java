@@ -4,7 +4,7 @@ import com.github.technus.avrClone.interrupt.IInterrupt;
 
 import java.util.TreeMap;
 
-public class GPIO_Registers extends RegistersPackage{
+public class GPIO_Registers extends RegisterPackage {
     public GPIO_Registers(int offset){
         super(offset,0x10);
         for(Register r: Register.values()){

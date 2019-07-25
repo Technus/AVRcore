@@ -1,7 +1,7 @@
 package com.github.technus.avrClone.instructions;
 
 import com.github.technus.avrClone.AvrCore;
-import com.github.technus.avrClone.memory.program.ProgramException;
+import com.github.technus.avrClone.memory.program.exceptions.ProgramException;
 import com.github.technus.avrClone.memory.program.ProgramMemory;
 
 public interface IInstruction {

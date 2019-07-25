@@ -1,4 +1,4 @@
-package com.github.technus.avrClone.registerPackages;
+package com.github.technus.avrClone.registerFile;
 
 public enum RegisterFileSingles {
     R0(0),  R1(1),  R2(2),  R3(3),

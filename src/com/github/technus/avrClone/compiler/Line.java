@@ -5,7 +5,8 @@ import com.github.technus.avrClone.compiler.exceptions.CompilerException;
 public class Line{
     public static final String NAME_FORMAT ="([a-zA-Z][0-9a-zA-Z_]*)";
     public static final String NAME_TERMINATOR ="[^0-9a-zA-Z_]";
-    private static final String NO_EXPRESSIONS[] =new String[0],NO_EXPRESSION="";
+    private static final String[] NO_EXPRESSIONS =new String[0];
+    private static final String NO_EXPRESSION="";
 
     private final String labelOrPointer,includeName, includePath,line,sanitizedLine,mnemonic,directive;
     private final int lineNumber;

@@ -4,7 +4,7 @@ import com.github.technus.avrClone.interrupt.IInterrupt;
 
 import java.util.TreeMap;
 
-public class CPU_Registers extends RegistersPackage{
+public class CPU_Registers extends RegisterPackage {
     public final int SREG,SP,defaultSP;
     public final static int
             I=RegisterBit.I.getBitMask(),

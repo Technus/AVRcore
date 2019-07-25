@@ -2,7 +2,7 @@ package com.github.technus.avrClone.registerPackages;
 
 import java.util.HashMap;
 
-public abstract class RegistersPackage implements IRegisterPackage {
+public abstract class RegisterPackage implements IRegisterPackage {
     protected final HashMap<String,Integer> singles=new HashMap<>();
     protected final HashMap<Integer,String> names=new HashMap<>();
     protected final HashMap<String,Integer> pairs=new HashMap<>();
@@ -10,7 +10,7 @@ public abstract class RegistersPackage implements IRegisterPackage {
 
     private final int offset,size;
 
-    protected RegistersPackage(int offset,int size){
+    protected RegisterPackage(int offset, int size){
         this.offset=offset;
         this.size=size;
     }

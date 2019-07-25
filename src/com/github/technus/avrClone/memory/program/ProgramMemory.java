@@ -3,6 +3,9 @@ package com.github.technus.avrClone.memory.program;
 import com.github.technus.avrClone.compiler.Line;
 import com.github.technus.avrClone.instructions.IInstruction;
 import com.github.technus.avrClone.instructions.InstructionRegistry;
+import com.github.technus.avrClone.memory.program.exceptions.InvalidDirective;
+import com.github.technus.avrClone.memory.program.exceptions.InvalidMnemonic;
+import com.github.technus.avrClone.memory.program.exceptions.ProgramException;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
