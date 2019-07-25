@@ -20,12 +20,12 @@ public abstract class RegisterPackage implements IRegisterPackage {
     }
 
     @Override
-    public final int getOffset() {
+    public int getOffset() {
         return offset;
     }
 
     @Override
-    public final int getSize() {
+    public int getSize() {
         return size;
     }
 
