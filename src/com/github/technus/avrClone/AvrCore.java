@@ -813,6 +813,7 @@ public class AvrCore {
         }
     }
 
+    @SuppressWarnings("unchecked")
     public void interruptsCycleForce(){
         for(IRegisterPackage registerPackage:packages.values()){
             for (IInterrupt interrupt:registerPackage.interruptsMap().values()){
