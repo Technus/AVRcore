@@ -21,11 +21,11 @@ public abstract class Instruction implements IInstruction {
 
     public static final Instruction
             NULL = new Instruction("NULL",false) {
-                @Override
-                public ExecutionEvent execute(AvrCore core) {
-                    return new ExecutionEvent(core.programCounter++,this,new DebugEvent("NULL!"));
-                }
-            },
+        @Override
+        public ExecutionEvent execute(AvrCore core) {
+            return new ExecutionEvent(core.programCounter++,this,new DebugEvent("NULL!"));
+        }
+    },
             ADC = new Instruction("ADC",true, R, R) {
                 @Override
                 public ExecutionEvent execute(AvrCore core) {
@@ -66,6 +66,11 @@ public abstract class Instruction implements IInstruction {
                     }
                     core.programCounter++;
                     return null;
+                }
+
+                @Override
+                public int getCost(AvrCore core) {
+                    return core.getStatusBitsAnd(CPU_Registers.U)?4:1;
                 }
             },
             ADCI = new Instruction("ADCI",false, Rh, K8s) {
@@ -109,6 +114,11 @@ public abstract class Instruction implements IInstruction {
                     core.programCounter++;
                     return null;
                 }
+
+                @Override
+                public int getCost(AvrCore core) {
+                    return core.getStatusBitsAnd(CPU_Registers.U)?4:1;
+                }
             },
             ADD = new Instruction("ADD",true, R, R) {
                 @Override
@@ -148,6 +158,11 @@ public abstract class Instruction implements IInstruction {
                     }
                     core.programCounter++;
                     return null;
+                }
+
+                @Override
+                public int getCost(AvrCore core) {
+                    return core.getStatusBitsAnd(CPU_Registers.U)?4:1;
                 }
             },
             ADDI = new Instruction("ADDI",false, Rh, K8s) {
@@ -189,41 +204,46 @@ public abstract class Instruction implements IInstruction {
                     core.programCounter++;
                     return null;
                 }
-            },
-            //ADIW = new Instruction("ADIW",true, Rp, K6) {
-            //    @Override
-            //    public ExecutionEvent execute(AvrCore core) {
-            //        long Rdi = core.getRegisterPairValue(core.getOperand0());
-            //        int Rri = core.getOperand1();
-            //
-            //        long R = Rdi + Rri;
-            //        core.setRegisterValue(core.getOperand0(), (int) R);
-            //        boolean C = Long.MAX_VALUE - Rdi < Rri;
-            //        core.setStatusBits(CPU_Registers.C, C);
-            //        core.setStatusBits(CPU_Registers.Z, (int) R == 0);
-            //        boolean N = (int) R < 0;
-            //        core.setStatusBits(CPU_Registers.N, N);
-            //
-            //        boolean V = C || Long.MAX_VALUE - Rri < Rdi;//todo
-            //        core.setStatusBits(CPU_Registers.V, V);
-            //        core.setStatusBits(CPU_Registers.S, N ^ V);
-            //
-            //        core.programCounter++;
-            //        return null;
-            //    }
-            //},
-            AND = new Instruction("AND",true, R, R) {
-                @Override
-                public ExecutionEvent execute(AvrCore core) {
-                    int R = core.andRegisterValue(core.getOperand0(), core.getRegisterValue(core.getOperand1()));
-                    core.setStatusBits(CPU_Registers.Z, R == 0);
-                    core.setStatusBits(CPU_Registers.S | CPU_Registers.N, R < 0);
-                    core.clearStatusBits(CPU_Registers.V);
 
-                    core.programCounter++;
-                    return null;
+                @Override
+                public int getCost(AvrCore core) {
+                    return core.getStatusBitsAnd(CPU_Registers.U)?4:1;
                 }
             },
+    //ADIW = new Instruction("ADIW",true, Rp, K6) {
+    //    @Override
+    //    public ExecutionEvent execute(AvrCore core) {
+    //        long Rdi = core.getRegisterPairValue(core.getOperand0());
+    //        int Rri = core.getOperand1();
+    //
+    //        long R = Rdi + Rri;
+    //        core.setRegisterValue(core.getOperand0(), (int) R);
+    //        boolean C = Long.MAX_VALUE - Rdi < Rri;
+    //        core.setStatusBits(CPU_Registers.C, C);
+    //        core.setStatusBits(CPU_Registers.Z, (int) R == 0);
+    //        boolean N = (int) R < 0;
+    //        core.setStatusBits(CPU_Registers.N, N);
+    //
+    //        boolean V = C || Long.MAX_VALUE - Rri < Rdi;//todo
+    //        core.setStatusBits(CPU_Registers.V, V);
+    //        core.setStatusBits(CPU_Registers.S, N ^ V);
+    //
+    //        core.programCounter++;
+    //        return null;
+    //    }
+    //},
+    AND = new Instruction("AND",true, R, R) {
+        @Override
+        public ExecutionEvent execute(AvrCore core) {
+            int R = core.andRegisterValue(core.getOperand0(), core.getRegisterValue(core.getOperand1()));
+            core.setStatusBits(CPU_Registers.Z, R == 0);
+            core.setStatusBits(CPU_Registers.S | CPU_Registers.N, R < 0);
+            core.clearStatusBits(CPU_Registers.V);
+
+            core.programCounter++;
+            return null;
+        }
+    },
             ANDI = new Instruction("ANDI",true, Rh, K8b) {
                 @Override
                 public ExecutionEvent execute(AvrCore core) {
@@ -686,6 +706,11 @@ public abstract class Instruction implements IInstruction {
                     core.programCounter++;
                     return null;
                 }
+
+                @Override
+                public int getCost(AvrCore core) {
+                    return core.getStatusBitsAnd(CPU_Registers.U)?4:1;
+                }
             },
             CPC = new Instruction("CPC",true, R, R) {
                 @Override
@@ -729,6 +754,11 @@ public abstract class Instruction implements IInstruction {
                     }
                     core.programCounter++;
                     return null;
+                }
+
+                @Override
+                public int getCost(AvrCore core) {
+                    return core.getStatusBitsAnd(CPU_Registers.U)?4:1;
                 }
             },
             CPCI = new Instruction("CPCI",false, Rh, K8s) {
@@ -774,6 +804,11 @@ public abstract class Instruction implements IInstruction {
                     core.programCounter++;
                     return null;
                 }
+
+                @Override
+                public int getCost(AvrCore core) {
+                    return core.getStatusBitsAnd(CPU_Registers.U)?4:1;
+                }
             },
             CPI = new Instruction("CPI",true, Rh, K8s) {
                 @Override
@@ -815,6 +850,11 @@ public abstract class Instruction implements IInstruction {
                     }
                     core.programCounter++;
                     return null;
+                }
+
+                @Override
+                public int getCost(AvrCore core) {
+                    return core.getStatusBitsAnd(CPU_Registers.U)?4:1;
                 }
             },
             CPSE = new Instruction("CPSE",true, R, R) {
@@ -1192,6 +1232,11 @@ public abstract class Instruction implements IInstruction {
                     core.programCounter++;
                     return null;
                 }
+
+                @Override
+                public int getCost(AvrCore core) {
+                    return core.getStatusBitsAnd(CPU_Registers.U)?4:1;
+                }
             },
             LSLD = new Instruction("LSLD",false, R, R) {
                 @Override
@@ -1390,6 +1435,11 @@ public abstract class Instruction implements IInstruction {
                     core.programCounter++;
                     return null;
                 }
+
+                @Override
+                public int getCost(AvrCore core) {
+                    return core.getStatusBitsAnd(CPU_Registers.U)?4:1;
+                }
             },
             NOP = new Instruction("NOP",true) {
                 @Override
@@ -1521,6 +1571,11 @@ public abstract class Instruction implements IInstruction {
                     core.programCounter++;
                     return null;
                 }
+
+                @Override
+                public int getCost(AvrCore core) {
+                    return core.getStatusBitsAnd(CPU_Registers.U)?4:1;
+                }
             },
             ROR = new Instruction("ROR",true, R) {
                 @Override
@@ -1585,6 +1640,11 @@ public abstract class Instruction implements IInstruction {
                     core.programCounter++;
                     return null;
                 }
+
+                @Override
+                public int getCost(AvrCore core) {
+                    return core.getStatusBitsAnd(CPU_Registers.U)?4:1;
+                }
             },
             SBCI = new Instruction("SBCI",true, Rh, K8s) {
                 @Override
@@ -1628,6 +1688,11 @@ public abstract class Instruction implements IInstruction {
                     }
                     core.programCounter++;
                     return null;
+                }
+
+                @Override
+                public int getCost(AvrCore core) {
+                    return core.getStatusBitsAnd(CPU_Registers.U)?4:1;
                 }
             },
             SBI = new Instruction("SBI",true, IO5, b) {
@@ -1938,6 +2003,11 @@ public abstract class Instruction implements IInstruction {
                     core.programCounter++;
                     return null;
                 }
+
+                @Override
+                public int getCost(AvrCore core) {
+                    return core.getStatusBitsAnd(CPU_Registers.U)?4:1;
+                }
             },
             SUBI = new Instruction("SUBI",true, Rh, K8s) {
                 @Override
@@ -1980,61 +2050,66 @@ public abstract class Instruction implements IInstruction {
                     core.programCounter++;
                     return null;
                 }
-            },
-            //SBIW = new Instruction("SBIW",true, Rp, K6) {
-            //    @Override
-            //    public ExecutionEvent execute(AvrCore core) {//todo
-            //        int Rdi = core.getRegisterValue(core.getOperand0());
-            //        int Rri = core.getOperand1();
-            //        long Rdl = Rdi & 0xFFFFFFFFL;
-            //        long Rrl = Rri & 0xFFFFFFFFL;
-            //
-            //        long R = Rdl - Rrl;
-            //        core.setRegisterValue(core.getOperand0(), (int) R);
-            //        boolean C = Rrl > Rdl;
-            //        core.setStatusBits(CPU_Registers.C, C);
-            //        core.setStatusBits(CPU_Registers.Z, (int) R == 0);
-            //        boolean N = (int) R < 0;
-            //        core.setStatusBits(CPU_Registers.N, N);
-            //
-            //        R = (long) Rdi - Rri;
-            //        boolean V = R > Integer.MAX_VALUE || R < Integer.MIN_VALUE;
-            //        core.setStatusBits(CPU_Registers.V, V);
-            //        core.setStatusBits(CPU_Registers.S, N ^ V);
-            //
-            //        if (core.getStatusBitsAnd(CPU_Registers.U)) {
-            //            core.setStatusBits(CPU_Registers.H8, C);
-            //
-            //            int mask = 0x0000000F;
-            //            int Md = Rdi & mask;
-            //            int Mr = Rri & mask;
-            //            C = Mr > Md;
-            //            core.setStatusBits(CPU_Registers.H, C);
-            //            core.setStatusBits(CPU_Registers.H1, C);
-            //
-            //            for (int i = 0; i < 6; i++) {
-            //                mask = 0x0FFFFFFF >> (i << 2);
-            //                Md = Rdi & mask;
-            //                Mr = Rri & mask;
-            //                core.setStatusBits(CPU_Registers.H7 >> i, Mr > Md);
-            //            }
-            //        }
-            //        core.programCounter++;
-            //        return null;
-            //    }
-            //},
-            SWAP = new Instruction("SWAP",true, R) {
+
                 @Override
-                public ExecutionEvent execute(AvrCore core) {
-                    int R = core.getRegisterValue(core.getOperand0());
-                    int R_ = R >> 4;
-                    R <<= 4;
-                    R = (R & 0xf0f0f0f0) | (R_ & 0x0f0f0f0f);
-                    core.setRegisterValue(core.getOperand0(), R);
-                    core.programCounter++;
-                    return null;
+                public int getCost(AvrCore core) {
+                    return core.getStatusBitsAnd(CPU_Registers.U)?4:1;
                 }
             },
+    //SBIW = new Instruction("SBIW",true, Rp, K6) {
+    //    @Override
+    //    public ExecutionEvent execute(AvrCore core) {//todo
+    //        int Rdi = core.getRegisterValue(core.getOperand0());
+    //        int Rri = core.getOperand1();
+    //        long Rdl = Rdi & 0xFFFFFFFFL;
+    //        long Rrl = Rri & 0xFFFFFFFFL;
+    //
+    //        long R = Rdl - Rrl;
+    //        core.setRegisterValue(core.getOperand0(), (int) R);
+    //        boolean C = Rrl > Rdl;
+    //        core.setStatusBits(CPU_Registers.C, C);
+    //        core.setStatusBits(CPU_Registers.Z, (int) R == 0);
+    //        boolean N = (int) R < 0;
+    //        core.setStatusBits(CPU_Registers.N, N);
+    //
+    //        R = (long) Rdi - Rri;
+    //        boolean V = R > Integer.MAX_VALUE || R < Integer.MIN_VALUE;
+    //        core.setStatusBits(CPU_Registers.V, V);
+    //        core.setStatusBits(CPU_Registers.S, N ^ V);
+    //
+    //        if (core.getStatusBitsAnd(CPU_Registers.U)) {
+    //            core.setStatusBits(CPU_Registers.H8, C);
+    //
+    //            int mask = 0x0000000F;
+    //            int Md = Rdi & mask;
+    //            int Mr = Rri & mask;
+    //            C = Mr > Md;
+    //            core.setStatusBits(CPU_Registers.H, C);
+    //            core.setStatusBits(CPU_Registers.H1, C);
+    //
+    //            for (int i = 0; i < 6; i++) {
+    //                mask = 0x0FFFFFFF >> (i << 2);
+    //                Md = Rdi & mask;
+    //                Mr = Rri & mask;
+    //                core.setStatusBits(CPU_Registers.H7 >> i, Mr > Md);
+    //            }
+    //        }
+    //        core.programCounter++;
+    //        return null;
+    //    }
+    //},
+    SWAP = new Instruction("SWAP",true, R) {
+        @Override
+        public ExecutionEvent execute(AvrCore core) {
+            int R = core.getRegisterValue(core.getOperand0());
+            int R_ = R >> 4;
+            R <<= 4;
+            R = (R & 0xf0f0f0f0) | (R_ & 0x0f0f0f0f);
+            core.setRegisterValue(core.getOperand0(), R);
+            core.programCounter++;
+            return null;
+        }
+    },
             SWAPP = new Instruction("SWAPP",false, R) {
                 @Override
                 public ExecutionEvent execute(AvrCore core) {
@@ -2234,6 +2309,11 @@ public abstract class Instruction implements IInstruction {
                     core.programCounter++;
                     return null;
                 }
+
+                @Override
+                public int getCost(AvrCore core) {
+                    return 16;
+                }
             },
             COPYP = new Instruction("COPYP",false) {
                 @Override
@@ -2243,6 +2323,11 @@ public abstract class Instruction implements IInstruction {
                     }
                     core.programCounter++;
                     return null;
+                }
+
+                @Override
+                public int getCost(AvrCore core) {
+                    return 16;
                 }
             },
             COPYO = new Instruction("COPYO",false) {
@@ -2254,6 +2339,11 @@ public abstract class Instruction implements IInstruction {
                     core.programCounter++;
                     return null;
                 }
+
+                @Override
+                public int getCost(AvrCore core) {
+                    return 16;
+                }
             },
             COPYQ = new Instruction("COPYQ",false) {
                 @Override
@@ -2264,6 +2354,11 @@ public abstract class Instruction implements IInstruction {
                     core.programCounter++;
                     return null;
                 }
+
+                @Override
+                public int getCost(AvrCore core) {
+                    return 16;
+                }
             },
             CLEAR = new Instruction("CLEAR",false) {
                 @Override
@@ -2273,6 +2368,11 @@ public abstract class Instruction implements IInstruction {
                     }
                     core.programCounter++;
                     return null;
+                }
+
+                @Override
+                public int getCost(AvrCore core) {
+                    return 8;
                 }
             },
             RAND = new Instruction("RAND",false, Rq, Rq) {
@@ -2289,6 +2389,11 @@ public abstract class Instruction implements IInstruction {
                     core.programCounter++;
                     return null;
                 }
+
+                @Override
+                public int getCost(AvrCore core) {
+                    return 4;
+                }
             },
             RANDI = new Instruction("RANDI",false, Rq, K32) {
                 @Override
@@ -2304,17 +2409,32 @@ public abstract class Instruction implements IInstruction {
                     core.programCounter++;
                     return null;
                 }
+
+                @Override
+                public int getCost(AvrCore core) {
+                    return 4;
+                }
             },
             WRITE = new Instruction("WRITE",false) {
                 @Override
                 public ExecutionEvent execute(AvrCore core) {
                     return new ExecutionEvent(core.programCounter++,this,new WriteEvent("WRITE!"));
                 }
+
+                @Override
+                public int getCost(AvrCore core) {
+                    return 32;
+                }
             },
             READ = new Instruction("READ",false) {
                 @Override
                 public ExecutionEvent execute(AvrCore core) {
                     return new ExecutionEvent(core.programCounter++, this,new ReadEvent("READ!"));
+                }
+
+                @Override
+                public int getCost(AvrCore core) {
+                    return 32;
                 }
             },
             DES = new Instruction("DES",false) {
@@ -2336,9 +2456,9 @@ public abstract class Instruction implements IInstruction {
                 @Override
                 public ExecutionEvent execute(AvrCore core) {
                     core.setRegisterPairValue(core.getOperand0(), des.cipher(
-                                    core.getRegisterPairValue(core.getOperand0()),
-                                    core.getRegisterPairValue(core.getOperand1()),
-                                    core.getStatusBitsNotAnd(CPU_Registers.H)));
+                            core.getRegisterPairValue(core.getOperand0()),
+                            core.getRegisterPairValue(core.getOperand1()),
+                            core.getStatusBitsNotAnd(CPU_Registers.H)));
                     core.programCounter++;
                     return null;
                 }
@@ -2367,11 +2487,6 @@ public abstract class Instruction implements IInstruction {
         }
         INSTRUCTIONS_OP.add(this);
         operandCount=limit0 == null ? 0 : (limit1 == null ? 1 : 2);
-    }
-
-    @Override
-    public int getCost(AvrCore core) {
-        return 1;
     }
 
     @Override

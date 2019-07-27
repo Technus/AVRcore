@@ -24,8 +24,12 @@ public interface IInstruction {
      * @param core
      */
     ExecutionEvent execute(AvrCore core);
-    int getCost(AvrCore core);
-    boolean isImmersive();
+    default int getCost(AvrCore core){
+        return 1;
+    }
+    default boolean isImmersive(){
+        return false;
+    }
     int getOperandCount();
 
     OperandLimit getLimit0();
