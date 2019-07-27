@@ -1,6 +1,5 @@
 package com.github.technus.avrClone.registerPackages;
 
-import com.github.technus.avrClone.interrupt.IInterrupt;
 import com.github.technus.avrClone.memory.IDataMemoryDefinition;
 
 import java.util.ArrayList;

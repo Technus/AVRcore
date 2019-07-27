@@ -3,7 +3,7 @@ package com.github.technus.avrClone;
 import com.github.technus.avrClone.instructions.ExecutionEvent;
 import com.github.technus.avrClone.instructions.IInstruction;
 import com.github.technus.avrClone.instructions.InstructionRegistry;
-import com.github.technus.avrClone.interrupt.IInterrupt;
+import com.github.technus.avrClone.registerPackages.IInterrupt;
 import com.github.technus.avrClone.memory.*;
 import com.github.technus.avrClone.memory.program.ProgramMemory;
 import com.github.technus.avrClone.registerPackages.CPU_Registers;

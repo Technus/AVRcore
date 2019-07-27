@@ -1,7 +1,5 @@
 package com.github.technus.avrClone.registerPackages;
 
-import com.github.technus.avrClone.interrupt.IInterrupt;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
