@@ -303,13 +303,12 @@ public class AvrCore {
         }
 
         CPU_Registers cpu=new CPU_Registers(offset,dataMemory.length-1);
-        if(cpu.getOffset()+cpu.getSize()>ioMemory.getOffset()+ioMemory.getSize()){
+        if (putDataBindings(cpu, "CPU")) {
+            cpuRegisters = cpu;
+            checkValid();
+        } else {
             throw new RuntimeException("Cannot set MCU CPU Registers, outside of range!");
         }
-        if(putDataBindings(cpu,"CPU")){
-            cpuRegisters=cpu;
-        }
-        checkValid();
     }
 
     public CPU_Registers getCpuRegisters() {
@@ -478,7 +477,7 @@ public class AvrCore {
     }
 
     public boolean putDataBindings(IRegisterPackage registerPackage, String name) {
-        if(accessibleMemory.get(registerPackage.getOffset(),registerPackage.getOffset()+registerPackage.getSize()).isEmpty()) {
+        if(accessibleMemory.get(registerPackage.getOffset(),registerPackage.getOffset()+registerPackage.getSize()).isEmpty() && ioMemory.canEncapsulate(registerPackage)) {
             Map<Integer, IInterrupt> interrupts=registerPackage.interruptsMap();
             if(interrupts!=null) {
                 for (Integer key : interrupts.keySet()) {
