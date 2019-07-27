@@ -803,7 +803,7 @@ public class AvrCore {
     //endregion
 
     //region interrupt handling
-    private boolean getInterruptEnable(){
+    public boolean getInterruptEnable(){
         return (dataMemory[cpuRegisters.SREG] & CPU_Registers.I) != 0;
     }
 
