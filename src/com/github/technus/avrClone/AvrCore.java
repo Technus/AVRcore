@@ -803,18 +803,22 @@ public class AvrCore {
     //endregion
 
     //region interrupt handling
-    private void clearInterruptsConfiguration(){
-        interrupts.clear();
+    private boolean getInterruptEnable(){
+        return (dataMemory[cpuRegisters.SREG] & CPU_Registers.I) != 0;
     }
 
     public void interruptsHandle() throws IndexOutOfBoundsException,NullPointerException{
-        if ((dataMemory[cpuRegisters.SREG] & CPU_Registers.I) != 0) {
+        if (getInterruptEnable()) {
             interruptsCycleForce();
         }
     }
 
+    private void clearInterruptsConfiguration(){
+        interrupts.clear();
+    }
+
     @SuppressWarnings("unchecked")
-    public void interruptsCycleForce(){
+    public void interruptsCycleForce() throws IndexOutOfBoundsException,NullPointerException{
         for(IRegisterPackage registerPackage:packages.values()){
             for (IInterrupt interrupt:registerPackage.interruptsMap().values()){
                 if (interrupt.tryInterrupt(this,registerPackage)) {//if cool and good
