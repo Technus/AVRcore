@@ -13,7 +13,7 @@ public class GPIO_Registers extends RegisterPackage {
         GPIOR12(),GPIOR13(),GPIOR14(),GPIOR15();
 
         @Override
-        public int getOffset(GPIO_Registers registers) {
+        public int getAddress(GPIO_Registers registers) {
             return ordinal()+registers.getOffset();
         }
     }

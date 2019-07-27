@@ -5,7 +5,7 @@ import com.github.technus.avrClone.AvrCore;
 public interface IInterrupt extends IRegister {
     @Override
     @Deprecated
-    default int getOffset(IRegisterPackage registerPackage) {
+    default int getAddress(IRegisterPackage registerPackage) {
         return getVector();
     }
 

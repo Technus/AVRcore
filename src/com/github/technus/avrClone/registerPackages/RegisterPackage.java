@@ -56,7 +56,7 @@ public abstract class RegisterPackage implements IRegisterPackage {
     protected void addRegisters(IRegister... registers){
         for(IRegister register: registers){
             this.registers.put(register.name(),register);
-            addresses.computeIfAbsent(register.getOffset(this),ArrayList::new).add(register);
+            addresses.computeIfAbsent(register.getAddress(this),ArrayList::new).add(register);
         }
     }
 

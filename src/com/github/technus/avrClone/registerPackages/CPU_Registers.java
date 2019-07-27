@@ -28,8 +28,8 @@ public class CPU_Registers extends RegisterPackage {
         addRegisters(Register.values());
         addBits(RegisterBit.values());
 
-        SREG=Register.SREG.getOffset(this);
-        SP=Register.SP.getOffset(this);
+        SREG=Register.SREG.getAddress(this);
+        SP=Register.SP.getAddress(this);
     }
 
     @Override
@@ -54,7 +54,7 @@ public class CPU_Registers extends RegisterPackage {
         }
 
         @Override
-        public int getOffset(CPU_Registers registers) {
+        public int getAddress(CPU_Registers registers) {
             return relativeOffset +registers.getOffset();
         }
     }
@@ -70,7 +70,7 @@ public class CPU_Registers extends RegisterPackage {
 
         @Override
         public int getOffset(CPU_Registers registers) {
-            return Register.SREG.getOffset(registers);
+            return Register.SREG.getAddress(registers);
         }
 
         @Override
