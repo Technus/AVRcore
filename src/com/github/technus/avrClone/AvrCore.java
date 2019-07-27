@@ -814,12 +814,14 @@ public class AvrCore {
     }
 
     public void interruptsCycleForce(){
-        for(IInterrupt interrupt:interrupts.values()) {
-            if (interrupt.tryInterrupt(this)) {//if cool and good
-                awoken =true;
-                pushValue(programCounter);
-                programCounter = interrupt.getVector();
-                dataMemory[cpuRegisters.SREG] &= CPU_Registers._I;
+        for(IRegisterPackage registerPackage:packages.values()){
+            for (IInterrupt interrupt:registerPackage.interruptsMap().values()){
+                if (interrupt.tryInterrupt(this,registerPackage)) {//if cool and good
+                    awoken =true;
+                    pushValue(programCounter);
+                    programCounter = interrupt.getVector();
+                    dataMemory[cpuRegisters.SREG] &= CPU_Registers._I;//disable global interrupts!
+                }
             }
         }
     }
