@@ -3,6 +3,12 @@ package com.github.technus.avrClone.registerPackages;
 import com.github.technus.avrClone.AvrCore;
 
 public interface IInterrupt extends IRegister {
+    @Override
+    @Deprecated
+    default int getOffset(IRegisterPackage registerPackage) {
+        return getVector();
+    }
+
     int getVector();
     boolean getTrigger(AvrCore core);
     default void setTrigger(AvrCore core, boolean value){
