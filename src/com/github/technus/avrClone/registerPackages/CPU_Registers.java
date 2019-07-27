@@ -1,9 +1,5 @@
 package com.github.technus.avrClone.registerPackages;
 
-import com.github.technus.avrClone.interrupt.IInterrupt;
-
-import java.util.TreeMap;
-
 public class CPU_Registers extends RegisterPackage {
     public final int SREG,SP,defaultSP;
     public final static int
@@ -29,13 +25,9 @@ public class CPU_Registers extends RegisterPackage {
     public CPU_Registers(int offset,int defaultSP){
         super(offset,0x10);
         this.defaultSP=defaultSP;
-        for(Register r:Register.values()){
-            singles.put(r.name(),r.relativeOffset+offset);
-            names.put(r.relativeOffset+offset,r.name());
-        }
-        for(RegisterBit r:RegisterBit.values()){
-            bits.put(r.name(),new int[]{offset,r.bit});
-        }
+        addRegisters(Register.values());
+        addBits(RegisterBit.values());
+
         SREG=Register.SREG.getOffset(this);
         SP=Register.SP.getOffset(this);
     }
@@ -90,10 +82,5 @@ public class CPU_Registers extends RegisterPackage {
         public int getBitMask() {
             return mask;
         }
-    }
-
-    @Override
-    public TreeMap<Integer, IInterrupt> interrupts() {
-        return null;
     }
 }

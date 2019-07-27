@@ -2,15 +2,15 @@ package com.github.technus.avrClone.registerPackages;
 
 import com.github.technus.avrClone.interrupt.IInterrupt;
 
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.TreeMap;
+import java.util.Map;
 
 public abstract class RegisterPackage implements IRegisterPackage {
-    protected final HashMap<String,Integer> singles=new HashMap<>();
-    protected final HashMap<Integer,String> names=new HashMap<>();
-    protected final HashMap<String,Integer> pairs=new HashMap<>();
-    protected final HashMap<String,int[]> bits=new HashMap<>();
-    protected final TreeMap<Integer, IInterrupt> interrupts=new TreeMap<>();
+    protected final Map<String,IRegisterBit> bits=new HashMap<>();
+    protected final Map<String,IRegister> registers =new HashMap<>();
+    protected final Map<Integer, ArrayList<IRegister>> addresses =new HashMap<>();
+    protected final Map<Integer, IInterrupt> interrupts=new HashMap<>();
 
     private final int offset,size;
 
@@ -30,22 +30,17 @@ public abstract class RegisterPackage implements IRegisterPackage {
     }
 
     @Override
-    public HashMap<String,Integer> registers() {
-        return singles;
+    public Map<String,IRegister> nameRegisterMap() {
+        return registers;
     }
 
     @Override
-    public HashMap<Integer,String> names() {
-        return names;
+    public Map<Integer,ArrayList<IRegister>> addressesNamesMap() {
+        return addresses;
     }
 
     @Override
-    public HashMap<String,Integer> registerPairs() {
-        return pairs;
-    }
-
-    @Override
-    public HashMap<String,int[]> registerBits() {
+    public Map<String,IRegisterBit> bitsMap() {
         return bits;
     }
 
@@ -55,7 +50,28 @@ public abstract class RegisterPackage implements IRegisterPackage {
     }
 
     @Override
-    public TreeMap<Integer, IInterrupt> interrupts() {
+    public Map<Integer, IInterrupt> interruptsMap() {
         return interrupts;
+    }
+
+    @SuppressWarnings("unchecked")
+    protected void addRegisters(IRegister... registers){
+        for(IRegister register: registers){
+            this.registers.put(register.name(),register);
+            addresses.computeIfAbsent(register.getOffset(this),ArrayList::new).add(register);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    protected void addBits(IRegisterBit... bits){
+        for(IRegisterBit bit: bits){
+            this.bits.put(bit.name(),bit);
+        }
+    }
+
+    protected void addInterrupts(IInterrupt... interrupts){
+        for (IInterrupt interrupt :interrupts) {
+            this.interrupts.put(interrupt.getVector(),interrupt);
+        }
     }
 }

@@ -1,6 +1,7 @@
 package com.github.technus.avrCloneGui.dataMemory.cpuTable;
 
 import com.github.technus.avrClone.AvrCore;
+import com.github.technus.avrClone.registerPackages.IRegister;
 import com.github.technus.avrCloneGui.dataMemory.DataTableModelAbstract;
 import com.github.technus.avrCloneGui.dataMemory.IRefreshDataMemoryView;
 
@@ -8,6 +9,8 @@ import javax.swing.event.EventListenerList;
 import javax.swing.event.TableModelEvent;
 import javax.swing.event.TableModelListener;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class CpuTableModel extends DataTableModelAbstract {
     protected EventListenerList listenerList = new EventListenerList();
@@ -49,7 +52,10 @@ public class CpuTableModel extends DataTableModelAbstract {
     @Override
     public Object getValueAt(int rowIndex, int columnIndex) {
         switch (columnIndex){
-            case 0:return core.getCpuRegisters()==null?"":core.getCpuRegisters().names().get(core.getCpuRegisters().getOffset()+rowIndex);
+            case 0:{
+                List<IRegister> registers = core.getCpuRegisters().addressesNamesMap().get(core.getCpuRegisters().getOffset()+rowIndex);
+                return registers==null?"":registers.size()==1?registers.get(0).name():Arrays.toString(registers.stream().map(IRegister::name).toArray());
+            }
             case 1:return core.getCpuRegisters()==null?"+"+rowIndex:core.getCpuRegisters().getOffset()+rowIndex;
             case 2:return core.getCpuRegisters()==null?0:core.dataMemory[core.getCpuRegisters().getOffset()+rowIndex];
         }

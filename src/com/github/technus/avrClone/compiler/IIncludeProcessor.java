@@ -12,18 +12,18 @@ import java.util.HashSet;
 
 public interface IIncludeProcessor {
     IIncludeProcessor DUMB_FILE_SYSTEM_INCLUDE_PROCESSOR = (parentIncludePath, includeName, includePath, systemDirectories, userDirectories, includedFilePaths) -> {
-        File f=new File(includeName);
-        if(!f.isFile()){
-            throw new InvalidInclude("File does not exist! "+includeName);
+        File f = new File(includeName);
+        if (!f.isFile()) {
+            throw new InvalidInclude("File does not exist! " + includeName);
         }
-        if(!f.canRead()){
-            throw new InvalidInclude("File is not readable! "+includeName);
+        if (!f.canRead()) {
+            throw new InvalidInclude("File is not readable! " + includeName);
         }
-        try{
-            includedFilePaths.put(includePath,f.getCanonicalPath());
+        try {
+            includedFilePaths.put(includePath, f.getCanonicalPath());
             return (ArrayList<String>) Files.readAllLines(f.toPath());
-        }catch (Exception e){
-            throw new InvalidInclude("Failed to read file! "+includeName,e);
+        } catch (Exception e) {
+            throw new InvalidInclude("Failed to read file! " + includeName, e);
         }
     };
     IIncludeProcessor ABSOLUTE_FILE_SYSTEM_INCLUDE_PROCESSOR = (parentIncludePath, includeName, includePath, systemDirectories, userDirectories, includedFilePaths) -> {

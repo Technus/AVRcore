@@ -1,16 +1,9 @@
 package com.github.technus.avrClone.registerPackages;
 
-import com.github.technus.avrClone.interrupt.IInterrupt;
-
-import java.util.TreeMap;
-
 public class GPIO_Registers extends RegisterPackage {
     public GPIO_Registers(int offset){
         super(offset,0x10);
-        for(Register r: Register.values()){
-            singles.put(r.name(),r.ordinal()+offset);
-            names.put(r.ordinal()+offset,r.name());
-        }
+        addRegisters(Register.values());
     }
 
     public enum Register implements IRegister<GPIO_Registers> {
@@ -23,10 +16,5 @@ public class GPIO_Registers extends RegisterPackage {
         public int getOffset(GPIO_Registers registers) {
             return ordinal()+registers.getOffset();
         }
-    }
-
-    @Override
-    public TreeMap<Integer, IInterrupt> interrupts() {
-        return null;
     }
 }

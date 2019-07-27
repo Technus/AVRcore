@@ -7,6 +7,7 @@ import com.github.technus.avrClone.interrupt.IInterrupt;
 import com.github.technus.avrClone.memory.*;
 import com.github.technus.avrClone.memory.program.ProgramMemory;
 import com.github.technus.avrClone.registerPackages.CPU_Registers;
+import com.github.technus.avrClone.registerPackages.IRegister;
 import com.github.technus.avrClone.registerPackages.IRegisterPackage;
 import com.github.technus.avrClone.registerFile.RegisterFilePairs;
 import com.github.technus.avrClone.registerFile.RegisterFileSingles;
@@ -386,9 +387,9 @@ public class AvrCore {
     public String getDataName(int i){
         if(accessibleMemory.get(i)){
             for(IRegisterPackage registerPackage:packages.values()){
-                String name=registerPackage.names().get(i);
+                List<IRegister> name=registerPackage.addressesNamesMap().get(i);
                 if(name!=null){
-                    return name;
+                    return name.get(0).name();
                 }
             }
         }
@@ -450,7 +451,7 @@ public class AvrCore {
 
     public boolean restoreRegistersBindings(IRegisterPackage registerPackage, String name) {
         if(accessibleMemory.get(registerPackage.getOffset(),registerPackage.getOffset()+registerPackage.getSize()).isEmpty()) {
-            TreeMap<Integer, IInterrupt> interrupts=registerPackage.interrupts();
+            Map<Integer, IInterrupt> interrupts=registerPackage.interruptsMap();
             if(interrupts!=null) {
                 for (Integer key : interrupts.keySet()) {
                     if(this.interrupts.containsKey(key)){
@@ -476,7 +477,7 @@ public class AvrCore {
 
     public boolean putRegistersBindings(IRegisterPackage registerPackage, String name) {
         if(accessibleMemory.get(registerPackage.getOffset(),registerPackage.getOffset()+registerPackage.getSize()).isEmpty()) {
-            TreeMap<Integer, IInterrupt> interrupts=registerPackage.interrupts();
+            Map<Integer, IInterrupt> interrupts=registerPackage.interruptsMap();
             if(interrupts!=null) {
                 for (Integer key : interrupts.keySet()) {
                     if(this.interrupts.containsKey(key)){
@@ -504,7 +505,7 @@ public class AvrCore {
 
     public boolean removeRegistersBindings(IRegisterPackage registerPackage, String name){
         if(packages.containsKey(name)) {
-            TreeMap<Integer, IInterrupt> i=registerPackage.interrupts();
+            Map<Integer, IInterrupt> i=registerPackage.interruptsMap();
             if(i!=null) {
                 for (Integer key : i.keySet()) {
                     interrupts.remove(key);
