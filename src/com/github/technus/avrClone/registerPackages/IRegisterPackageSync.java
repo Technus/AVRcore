@@ -2,6 +2,6 @@ package com.github.technus.avrClone.registerPackages;
 
 import com.github.technus.avrClone.AvrCore;
 
-public interface IRegisterPackageSync extends IRegisterPackage {
-    void sync(AvrCore core);
+public interface IRegisterPackageSync<T> extends IRegisterPackage {
+    void sync(AvrCore core,T objToSync);
 }
