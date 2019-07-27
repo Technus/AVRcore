@@ -11,20 +11,18 @@ public interface IInterrupt extends IRegister {
 
     int getVector();
     boolean getTrigger(AvrCore core);
-    default void setTrigger(AvrCore core, boolean value){
-        if(value){
-            setTrigger(core);
-        }else {
-            clearTrigger(core);
-        }
-    }
-    void setTrigger(AvrCore core);
-    void clearTrigger(AvrCore core);
+    void setTrigger(AvrCore core, boolean value);
 
     /**
      * Assuming that SREG.I is always SET!, otherwise it is not called, should clear it's interrupt request flag
      * @param core
      * @return
      */
-    boolean tryInterrupt(AvrCore core);
+    default boolean tryInterrupt(AvrCore core){
+        if(getTrigger(core)){
+            setTrigger(core,false);
+            return true;
+        }
+        return false;
+    }
 }
