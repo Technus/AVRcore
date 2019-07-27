@@ -10,13 +10,13 @@ public interface IRegisterPackage extends IDataMemoryDefinition {
      * Register raw address to name
      * @return
      */
-    Map<String,IRegister> nameRegisterMap();
+    Map<String,IRegister> registersMap();
 
     /**
      * Register name to raw address
-     * @return
+     * @return, single register, then register pair (optional)
      */
-    Map<Integer, ArrayList<IRegister>> addressesNamesMap();
+    Map<Integer, ArrayList<IRegister>> addressesMap();
 
     /**
      * Register bit name to Definition

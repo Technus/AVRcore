@@ -85,7 +85,7 @@ public class AvrCore {
     }
 
     public void reset(){
-        clearVolatileMemoryContent();
+        clearVolatileDataMemoryContent();
         clearRegisterFileContent();
         programCounter=0;
     }
@@ -144,7 +144,7 @@ public class AvrCore {
         return checkValid();
     }
 
-    public void clearVolatileMemoryContent(){
+    public void clearVolatileDataMemoryContent(){
         RemovableMemory<EepromMemory> eepromBackup = getEepromMemory();
         dataMemory=new int[dataMemory.length];
         if(eepromBackup!=null) {
@@ -244,20 +244,6 @@ public class AvrCore {
         return eepromBackup;
     }
 
-    public RemovableMemory<EepromMemory> clearEepromContent() {
-        if(!valid){
-            throw new RuntimeException("Cannot set MCU EEPROM!");
-        }
-        RemovableMemory<EepromMemory> eepromBackup= removeEepromMemory();
-        if (eepromMemory != null) {
-            System.arraycopy(eepromMemory.getDataDefault(), 0,
-                    dataMemory, eepromMemory.getOffset(), eepromMemory.getSize());
-        }else {
-            throw new RuntimeException("No EEPROM to clear!");
-        }
-        return eepromBackup;
-    }
-
     public RemovableMemory<EepromMemory> setEepromContent(int[] data) {
         if(!valid){
             throw new RuntimeException("Cannot set MCU EEPROM!");
@@ -270,6 +256,20 @@ public class AvrCore {
             }else {
                 throw new RuntimeException("No EEPROM to write to!");
             }
+        }
+        return eepromBackup;
+    }
+
+    public RemovableMemory<EepromMemory> clearEepromContent() {
+        if(!valid){
+            throw new RuntimeException("Cannot set MCU EEPROM!");
+        }
+        RemovableMemory<EepromMemory> eepromBackup= removeEepromMemory();
+        if (eepromMemory != null) {
+            System.arraycopy(eepromMemory.getDataDefault(), 0,
+                    dataMemory, eepromMemory.getOffset(), eepromMemory.getSize());
+        }else {
+            throw new RuntimeException("No EEPROM to clear!");
         }
         return eepromBackup;
     }
@@ -299,14 +299,14 @@ public class AvrCore {
             throw new RuntimeException("Cannot set MCU CPU Registers!");
         }
         if(cpuRegisters!=null) {
-            removeRegistersBindings(cpuRegisters);
+            removeDataBindings(cpuRegisters);
         }
 
         CPU_Registers cpu=new CPU_Registers(offset,dataMemory.length-1);
         if(cpu.getOffset()+cpu.getSize()>ioMemory.getOffset()+ioMemory.getSize()){
             throw new RuntimeException("Cannot set MCU CPU Registers, outside of range!");
         }
-        if(putRegistersBindings(cpu,"CPU")){
+        if(putDataBindings(cpu,"CPU")){
             cpuRegisters=cpu;
         }
         checkValid();
@@ -365,49 +365,6 @@ public class AvrCore {
     //endregion
 
     //region register package handlers
-    public void removeAllPackages(){
-        for (Map.Entry<String, IRegisterPackage> entry:packages.entrySet()) {
-            removeRegistersBindings(entry.getValue(),entry.getKey());
-        }
-        clearInterruptsConfiguration();//to be sure...
-    }
-
-    public String getPackageName(int i){
-        if(accessibleMemory.get(i)){
-            for(Map.Entry<String, IRegisterPackage> entry:packages.entrySet()){
-                IRegisterPackage registerPackage=entry.getValue();
-                if(i<registerPackage.getOffset()+registerPackage.getSize() && i>=registerPackage.getOffset()){
-                    return entry.getKey();
-                }
-            }
-        }
-        return null;
-    }
-
-    public String getDataName(int i){
-        if(accessibleMemory.get(i)){
-            for(IRegisterPackage registerPackage:packages.values()){
-                List<IRegister> name=registerPackage.addressesNamesMap().get(i);
-                if(name!=null){
-                    return name.get(0).name();
-                }
-            }
-        }
-        return null;
-    }
-
-    public HashMap<String,Integer> getDataNames(){
-        HashMap<String,Integer> map=new HashMap<>();
-        for(int i=0;i>=0;i=accessibleMemory.nextSetBit(i)){
-            String name=getDataName(i);
-            if(name!=null) {
-                map.put(name, i);
-            }
-            i++;
-        }
-        return map;
-    }
-
     public HashMap<String,Integer> getRegisterNames(){
         HashMap<String,Integer> map=new HashMap<>();
         for(int i=0;i<registerFile.length;i++){
@@ -440,16 +397,61 @@ public class AvrCore {
         map.put("wh",RegisterFileSingles.Wh.offset);
         return map;
     }
-
-    public boolean restoreRegistersBindings(IRegisterPackage registerPackage) {
-        return restoreRegistersBindings(registerPackage,registerPackage.getClass().getSimpleName()+registerPackage.hashCode());
+    
+    public void removeAllPackages(){
+        for (Map.Entry<String, IRegisterPackage> entry:packages.entrySet()) {
+            removeDataBindings(entry.getValue(),entry.getKey());
+        }
+        clearInterruptsConfiguration();//to be sure...
     }
 
-    public boolean restoreRegistersBindings(IRegisterPackage registerPackage, String prefix, String postfix) {
-        return restoreRegistersBindings(registerPackage,prefix + registerPackage.getClass().getSimpleName() + postfix);
+    public String getPackageName(int i){
+        if(accessibleMemory.get(i)){
+            for(Map.Entry<String, IRegisterPackage> entry:packages.entrySet()){
+                IRegisterPackage registerPackage=entry.getValue();
+                if(i<registerPackage.getOffset()+registerPackage.getSize() && i>=registerPackage.getOffset()){
+                    return entry.getKey();
+                }
+            }
+        }
+        return null;
     }
 
-    public boolean restoreRegistersBindings(IRegisterPackage registerPackage, String name) {
+    public List<IRegister> getDataDefinitions(int i){
+        if(accessibleMemory.get(i)){
+            for(IRegisterPackage registerPackage:packages.values()){
+                List<IRegister> definitions=registerPackage.addressesMap().get(i);
+                if(definitions!=null){
+                    return definitions;
+                }
+            }
+        }
+        return null;
+    }
+
+    public HashMap<String,Integer> getDataNames(){
+        HashMap<String,Integer> map=new HashMap<>();
+        for(int i=0;i>=0;i=accessibleMemory.nextSetBit(i)){
+            List<IRegister> definitions=getDataDefinitions(i);
+            if(definitions!=null) {
+                for (IRegister definition : definitions) {
+                    map.put(definition.name(),i);
+                }
+            }
+            i++;
+        }
+        return map;
+    }
+
+    public boolean restoreDataBindings(IRegisterPackage registerPackage) {
+        return restoreDataBindings(registerPackage,registerPackage.getClass().getSimpleName()+registerPackage.hashCode());
+    }
+
+    public boolean restoreDataBindings(IRegisterPackage registerPackage, String prefix, String postfix) {
+        return restoreDataBindings(registerPackage,prefix + registerPackage.getClass().getSimpleName() + postfix);
+    }
+
+    public boolean restoreDataBindings(IRegisterPackage registerPackage, String name) {
         if(accessibleMemory.get(registerPackage.getOffset(),registerPackage.getOffset()+registerPackage.getSize()).isEmpty()) {
             Map<Integer, IInterrupt> interrupts=registerPackage.interruptsMap();
             if(interrupts!=null) {
@@ -467,15 +469,15 @@ public class AvrCore {
         return false;
     }
 
-    public boolean putRegistersBindings(IRegisterPackage registerPackage) {
-        return putRegistersBindings(registerPackage,registerPackage.getClass().getSimpleName()+registerPackage.hashCode());
+    public boolean putDataBindings(IRegisterPackage registerPackage) {
+        return putDataBindings(registerPackage,registerPackage.getClass().getSimpleName()+registerPackage.hashCode());
     }
 
-    public boolean putRegistersBindings(IRegisterPackage registerPackage, String prefix, String postfix) {
-        return putRegistersBindings(registerPackage,prefix + registerPackage.getClass().getSimpleName() + postfix);
+    public boolean putDataBindings(IRegisterPackage registerPackage, String prefix, String postfix) {
+        return putDataBindings(registerPackage,prefix + registerPackage.getClass().getSimpleName() + postfix);
     }
 
-    public boolean putRegistersBindings(IRegisterPackage registerPackage, String name) {
+    public boolean putDataBindings(IRegisterPackage registerPackage, String name) {
         if(accessibleMemory.get(registerPackage.getOffset(),registerPackage.getOffset()+registerPackage.getSize()).isEmpty()) {
             Map<Integer, IInterrupt> interrupts=registerPackage.interruptsMap();
             if(interrupts!=null) {
@@ -494,16 +496,16 @@ public class AvrCore {
         return false;
     }
 
-    public boolean removeRegistersBindings(IRegisterPackage registerPackage) {
-        return removeRegistersBindings(registerPackage,registerPackage.getClass().getSimpleName()+registerPackage.hashCode());
+    public boolean removeDataBindings(IRegisterPackage registerPackage) {
+        return removeDataBindings(registerPackage,registerPackage.getClass().getSimpleName()+registerPackage.hashCode());
     }
 
-    public boolean removeRegistersBindings(IRegisterPackage registerPackage, String prefix, String postfix){
+    public boolean removeDataBindings(IRegisterPackage registerPackage, String prefix, String postfix){
         String name=prefix + registerPackage.getClass().getSimpleName() + postfix;
-        return removeRegistersBindings(registerPackage,name);
+        return removeDataBindings(registerPackage,name);
     }
 
-    public boolean removeRegistersBindings(IRegisterPackage registerPackage, String name){
+    public boolean removeDataBindings(IRegisterPackage registerPackage, String name){
         if(packages.containsKey(name)) {
             Map<Integer, IInterrupt> i=registerPackage.interruptsMap();
             if(i!=null) {
@@ -641,23 +643,31 @@ public class AvrCore {
 
     //region data
     public void setDataValue(int addr,int value) {
-        if(accessibleMemory.get(addr)) {
-            dataMemory[addr] = value;
-        }
+        dataMemory[addr]=value;
     }
 
-    public int getDataValue(int addr) {
-        if(accessibleMemory.get(addr)){
-            return dataMemory[addr];
-        }
-        return 0;
+    public int orDataValue(int addr, int bits) {
+        return dataMemory[addr]|=bits;
+    }
+
+    public int andDataValue(int addr, int bits) {
+        return dataMemory[addr]&=bits;
     }
 
     public int xorDataValue(int addr, int bits) {
-        if(accessibleMemory.get(addr)) {
-            return dataMemory[addr] ^= bits;
-        }
-        return 0;
+        return dataMemory[addr]^=bits;
+    }
+
+    public int notDataValue(int addr){
+        return dataMemory[addr]=~dataMemory[addr];
+    }
+
+    public int negDataValue(int addr){
+        return dataMemory[addr]=-dataMemory[addr];
+    }
+
+    public int getDataValue(int addr) {
+        return dataMemory[addr];
     }
     //endregion
 

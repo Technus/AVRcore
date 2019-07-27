@@ -1,6 +1,7 @@
 package com.github.technus.avrCloneGui.dataMemory.dataTable;
 
 import com.github.technus.avrClone.AvrCore;
+import com.github.technus.avrClone.registerPackages.IRegister;
 import com.github.technus.avrCloneGui.dataMemory.DataTableModelAbstract;
 import com.github.technus.avrCloneGui.dataMemory.IRefreshDataMemoryView;
 
@@ -8,6 +9,8 @@ import javax.swing.event.EventListenerList;
 import javax.swing.event.TableModelEvent;
 import javax.swing.event.TableModelListener;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class DataTableModel extends DataTableModelAbstract {
     protected EventListenerList listenerList = new EventListenerList();
@@ -50,11 +53,23 @@ public class DataTableModel extends DataTableModelAbstract {
 
     @Override
     public Object getValueAt(int rowIndex, int columnIndex) {
+        if(core.dataMemory==null){
+            return columnIndex==2?rowIndex:null;
+        }
         switch (columnIndex){
-            case 0:return core.dataMemory==null?null:core.getPackageName(rowIndex);
-            case 1:return core.dataMemory==null?null:core.getDataName(rowIndex);
+            case 0:return core.getPackageName(rowIndex);
+            case 1:{
+                List<IRegister> registers = core.getDataDefinitions(rowIndex);
+                if(registers==null){
+                    return null;
+                }
+                if(registers.size()==1){
+                    return registers.get(0).name();
+                }
+                return Arrays.toString(registers.stream().map(IRegister::name).toArray());
+            }
             case 2:return rowIndex;
-            case 3:return core.dataMemory!=null && core.isDataAddressValid(rowIndex) ? core.dataMemory[rowIndex] : null;
+            case 3:return core.isDataAddressValid(rowIndex) ? core.dataMemory[rowIndex] : null;
         }
         return null;
     }

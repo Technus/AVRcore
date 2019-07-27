@@ -28,12 +28,12 @@ public abstract class RegisterPackage implements IRegisterPackage {
     }
 
     @Override
-    public Map<String,IRegister> nameRegisterMap() {
+    public Map<String,IRegister> registersMap() {
         return registers;
     }
 
     @Override
-    public Map<Integer,ArrayList<IRegister>> addressesNamesMap() {
+    public Map<Integer,ArrayList<IRegister>> addressesMap() {
         return addresses;
     }
 

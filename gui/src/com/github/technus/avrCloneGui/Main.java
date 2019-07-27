@@ -26,7 +26,7 @@ public class Main {
         }
 
         core.simpleInit();
-        core.putRegistersBindings(new GPIO_Registers(0x00),"GPIOR");
+        core.putDataBindings(new GPIO_Registers(0x00),"GPIOR");
         try {
             programCompiler.setSegmentOffset(Segment.ESEG, 4096);
         }catch (CompilerException e){
