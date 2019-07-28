@@ -265,7 +265,7 @@ public class AvrTest {
             asm.setText(core.getProgramMemory().getProgram(10));
         }
 
-        InstructionRegistry.REGISTRIES.forEach(registry::addItem);
+        InstructionRegistry.REGISTRIES.forEach((k,v)->registry.addItem(v));
         registry.addActionListener(e -> refreshWithInstructionRegistry(registry.getItemAt(registry.getSelectedIndex())));
         registry.setSelectedItem(core.getInstructionRegistry());
 

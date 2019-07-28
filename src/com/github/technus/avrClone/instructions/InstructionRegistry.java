@@ -4,9 +4,10 @@ import com.github.technus.avrClone.memory.program.exceptions.InvalidMnemonic;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 
 public class InstructionRegistry {
-    public static final ArrayList<InstructionRegistry> REGISTRIES=new ArrayList<>();
+    public static final Map<String,InstructionRegistry> REGISTRIES=new HashMap<>();
 
     public static final InstructionRegistry INSTRUCTION_REGISTRY_OP;
     public static final InstructionRegistry INSTRUCTION_REGISTRY_IMMERSIVE;
@@ -14,14 +15,14 @@ public class InstructionRegistry {
         InstructionRegistry instructionRegistry;
 
         try{
-            instructionRegistry=new InstructionRegistry(Instruction.INSTRUCTIONS_OP).setInstructionDefaultAndName(Instruction.NULL,"OP");
+            instructionRegistry=new InstructionRegistry(Instruction.INSTRUCTIONS_OP,Instruction.NULL,"OP");
         }catch (InvalidMnemonic e){
             instructionRegistry=null;
         }
         INSTRUCTION_REGISTRY_OP=instructionRegistry;
 
         try{
-            instructionRegistry=new InstructionRegistry(Instruction.INSTRUCTIONS_IMMERSIVE).setInstructionDefaultAndName(Instruction.NULL,"IMMERSIVE");
+            instructionRegistry=new InstructionRegistry(Instruction.INSTRUCTIONS_IMMERSIVE,Instruction.NULL,"IMMERSIVE");
         }catch (InvalidMnemonic e){
             instructionRegistry=null;
         }
@@ -34,12 +35,14 @@ public class InstructionRegistry {
 
     private String name;
 
-    public InstructionRegistry(ArrayList<? extends IInstruction> array) throws InvalidMnemonic{
+    public InstructionRegistry(ArrayList<? extends IInstruction> array,IInstruction defaultInstruction,String name) throws InvalidMnemonic{
         instructions=new IInstruction[array.size()];
         for(IInstruction instructionAVRrc :array){
             addInstruction(instructionAVRrc);
         }
-        REGISTRIES.add(this);
+        this.instructionDefault = getID(defaultInstruction.name());
+        this.name=name;
+        REGISTRIES.put(name,this);
     }
 
     public InstructionRegistry print(){
@@ -47,12 +50,6 @@ public class InstructionRegistry {
             IInstruction instruction = instructions[i];
             System.out.println(instruction.name() + " " + i);
         }
-        return this;
-    }
-
-    public InstructionRegistry setInstructionDefaultAndName(IInstruction instructionDefault, String name) {
-        this.instructionDefault = getID(instructionDefault.name());
-        this.name=name;
         return this;
     }
 
