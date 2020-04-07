@@ -15,7 +15,7 @@ import com.github.technus.avrClone.registerFile.RegisterFileSingles;
 import java.util.*;
 
 public class AvrCore {
-    private volatile boolean valid=false;
+    private volatile boolean valid=false;//whoosh
 
     private InstructionRegistry instructionRegistry;//MCU CORE
     private boolean immersiveOperands;//MCU CURE
