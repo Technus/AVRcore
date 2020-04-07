@@ -2,7 +2,7 @@ package com.github.technus.avrClone.registerPackages;
 
 import com.github.technus.avrClone.AvrCore;
 
-public interface IInterrupt<T extends IRegisterPackage> extends IRegister<T> {
+public interface IInterrupt<T extends IRegisterPackage<T>> extends IRegister<T> {
     @Override
     @Deprecated
     default int getAddress(T registerPackage) {

@@ -34,9 +34,9 @@ public class AvrCore {
     private EepromMemory eepromMemory;//EEPROM
 
     private CPU_Registers cpuRegisters;
-    private final HashMap<String, IRegisterPackage> packages = new HashMap<>();
+    private final HashMap<String, IRegisterPackage<?>> packages = new HashMap<>();
 
-    private final TreeMap<Integer, IInterrupt> interrupts = new TreeMap<>();
+    private final TreeMap<Integer, IInterrupt<?>> interrupts = new TreeMap<>();
 
     public AvrCore(){}
 
@@ -154,7 +154,7 @@ public class AvrCore {
     }
 
     public void initDataMemoryDefaults(){
-        for(IRegisterPackage pack:packages.values()){
+        for(IRegisterPackage<?> pack:packages.values()){
             System.arraycopy(pack.getDataDefault(),0,dataMemory,pack.getOffset(),pack.getSize());
         }
     }
@@ -398,7 +398,7 @@ public class AvrCore {
     }
     
     public void removeAllPackages(){
-        for (Map.Entry<String, IRegisterPackage> entry:packages.entrySet()) {
+        for (Map.Entry<String, IRegisterPackage<?>> entry:packages.entrySet()) {
             removeDataBindings(entry.getValue(),entry.getKey());
         }
         clearInterruptsConfiguration();//to be sure...
@@ -406,8 +406,8 @@ public class AvrCore {
 
     public String getPackageName(int i){
         if(accessibleMemory.get(i)){
-            for(Map.Entry<String, IRegisterPackage> entry:packages.entrySet()){
-                IRegisterPackage registerPackage=entry.getValue();
+            for(Map.Entry<String, IRegisterPackage<?>> entry:packages.entrySet()){
+                IRegisterPackage<?> registerPackage=entry.getValue();
                 if(i<registerPackage.getOffset()+registerPackage.getSize() && i>=registerPackage.getOffset()){
                     return entry.getKey();
                 }
@@ -416,10 +416,10 @@ public class AvrCore {
         return null;
     }
 
-    public List<IRegister> getDataDefinitions(int i){
+    public List<? extends IRegister<?>> getDataDefinitions(int i){
         if(accessibleMemory.get(i)){
-            for(IRegisterPackage registerPackage:packages.values()){
-                List<IRegister> definitions=registerPackage.addressesMap().get(i);
+            for(IRegisterPackage<?> registerPackage:packages.values()){
+                List<? extends IRegister<?>> definitions=registerPackage.addressesMap().get(i);
                 if(definitions!=null){
                     return definitions;
                 }
@@ -431,9 +431,9 @@ public class AvrCore {
     public HashMap<String,Integer> getDataNames(){
         HashMap<String,Integer> map=new HashMap<>();
         for(int i=0;i>=0;i=accessibleMemory.nextSetBit(i)){
-            List<IRegister> definitions=getDataDefinitions(i);
+            List<? extends IRegister<?>> definitions=getDataDefinitions(i);
             if(definitions!=null) {
-                for (IRegister definition : definitions) {
+                for (IRegister<?> definition : definitions) {
                     map.put(definition.name(),i);
                 }
             }
@@ -442,17 +442,17 @@ public class AvrCore {
         return map;
     }
 
-    public boolean restoreDataBindings(IRegisterPackage registerPackage) {
+    public boolean restoreDataBindings(IRegisterPackage<?> registerPackage) {
         return restoreDataBindings(registerPackage,registerPackage.getClass().getSimpleName()+registerPackage.hashCode());
     }
 
-    public boolean restoreDataBindings(IRegisterPackage registerPackage, String prefix, String postfix) {
+    public boolean restoreDataBindings(IRegisterPackage<?> registerPackage, String prefix, String postfix) {
         return restoreDataBindings(registerPackage,prefix + registerPackage.getClass().getSimpleName() + postfix);
     }
 
-    public boolean restoreDataBindings(IRegisterPackage registerPackage, String name) {
+    public boolean restoreDataBindings(IRegisterPackage<?> registerPackage, String name) {
         if(accessibleMemory.get(registerPackage.getOffset(),registerPackage.getOffset()+registerPackage.getSize()).isEmpty()) {
-            Map<Integer, IInterrupt> interrupts=registerPackage.interruptsMap();
+            Map<Integer, ? extends IInterrupt<?>> interrupts=registerPackage.interruptsMap();
             if(interrupts!=null) {
                 for (Integer key : interrupts.keySet()) {
                     if(this.interrupts.containsKey(key)){
@@ -468,17 +468,17 @@ public class AvrCore {
         return false;
     }
 
-    public boolean putDataBindings(IRegisterPackage registerPackage) {
+    public boolean putDataBindings(IRegisterPackage<?> registerPackage) {
         return putDataBindings(registerPackage,registerPackage.getClass().getSimpleName()+registerPackage.hashCode());
     }
 
-    public boolean putDataBindings(IRegisterPackage registerPackage, String prefix, String postfix) {
+    public boolean putDataBindings(IRegisterPackage<?> registerPackage, String prefix, String postfix) {
         return putDataBindings(registerPackage,prefix + registerPackage.getClass().getSimpleName() + postfix);
     }
 
-    public boolean putDataBindings(IRegisterPackage registerPackage, String name) {
+    public boolean putDataBindings(IRegisterPackage<?> registerPackage, String name) {
         if(accessibleMemory.get(registerPackage.getOffset(),registerPackage.getOffset()+registerPackage.getSize()).isEmpty() && ioMemory.canEncapsulate(registerPackage)) {
-            Map<Integer, IInterrupt> interrupts=registerPackage.interruptsMap();
+            Map<Integer,? extends IInterrupt<?>> interrupts=registerPackage.interruptsMap();
             if(interrupts!=null) {
                 for (Integer key : interrupts.keySet()) {
                     if(this.interrupts.containsKey(key)){
@@ -495,18 +495,18 @@ public class AvrCore {
         return false;
     }
 
-    public boolean removeDataBindings(IRegisterPackage registerPackage) {
+    public boolean removeDataBindings(IRegisterPackage<?> registerPackage) {
         return removeDataBindings(registerPackage,registerPackage.getClass().getSimpleName()+registerPackage.hashCode());
     }
 
-    public boolean removeDataBindings(IRegisterPackage registerPackage, String prefix, String postfix){
+    public boolean removeDataBindings(IRegisterPackage<?> registerPackage, String prefix, String postfix){
         String name=prefix + registerPackage.getClass().getSimpleName() + postfix;
         return removeDataBindings(registerPackage,name);
     }
 
-    public boolean removeDataBindings(IRegisterPackage registerPackage, String name){
+    public boolean removeDataBindings(IRegisterPackage<?> registerPackage, String name){
         if(packages.containsKey(name)) {
-            Map<Integer, IInterrupt> i=registerPackage.interruptsMap();
+            Map<Integer,? extends IInterrupt<?>> i=registerPackage.interruptsMap();
             if(i!=null) {
                 for (Integer key : i.keySet()) {
                     interrupts.remove(key);
@@ -826,9 +826,9 @@ public class AvrCore {
         interrupts.clear();
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked","rawtypes"})
     public void interruptsCycleForce() throws IndexOutOfBoundsException,NullPointerException{
-        for(IRegisterPackage registerPackage:packages.values()){
+        for(IRegisterPackage<?> registerPackage:packages.values()){
             for (IInterrupt interrupt:registerPackage.interruptsMap().values()){
                 if (interrupt.tryInterrupt(this,registerPackage)) {//if cool and good
                     awoken =true;

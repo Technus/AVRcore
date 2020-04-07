@@ -2,17 +2,20 @@ package com.github.technus.avrClone.registerPackages;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-public abstract class RegisterPackage implements IRegisterPackage {
-    protected final Map<String,IRegisterBit> bits=new HashMap<>();
-    protected final Map<String,IRegister> registers =new HashMap<>();
-    protected final Map<Integer, ArrayList<IRegister>> addresses =new HashMap<>();
-    protected final Map<Integer, IInterrupt> interrupts=new HashMap<>();
+public abstract class RegisterPackage<T extends RegisterPackage<T>> implements IRegisterPackage<T> {
+    protected final Map<String,IRegisterBit<T>> bits=new HashMap<>();
+    protected final Map<String,IRegister<T>> registers =new HashMap<>();
+    protected final Map<Integer, List<IRegister<T>>> addresses =new HashMap<>();
+    protected final Map<Integer, IInterrupt<T>> interrupts=new HashMap<>();
 
     private final int offset,size;
 
+    @SuppressWarnings("unchecked")
     protected RegisterPackage(int offset, int size){
+        T checkCast=(T)this;
         this.offset=offset;
         this.size=size;
     }
@@ -28,17 +31,17 @@ public abstract class RegisterPackage implements IRegisterPackage {
     }
 
     @Override
-    public Map<String,IRegister> registersMap() {
+    public Map<String,IRegister<T>> registersMap() {
         return registers;
     }
 
     @Override
-    public Map<Integer,ArrayList<IRegister>> addressesMap() {
+    public Map<Integer, List<IRegister<T>>> addressesMap() {
         return addresses;
     }
 
     @Override
-    public Map<String,IRegisterBit> bitsMap() {
+    public Map<String,IRegisterBit<T>> bitsMap() {
         return bits;
     }
 
@@ -48,27 +51,27 @@ public abstract class RegisterPackage implements IRegisterPackage {
     }
 
     @Override
-    public Map<Integer, IInterrupt> interruptsMap() {
+    public Map<Integer, IInterrupt<T>> interruptsMap() {
         return interrupts;
     }
 
     @SuppressWarnings("unchecked")
-    protected void addRegisters(IRegister... registers){
-        for(IRegister register: registers){
+    protected void addRegisters(IRegister<T>... registers){
+        for(IRegister<T> register: registers){
             this.registers.put(register.name(),register);
-            addresses.computeIfAbsent(register.getAddress(this),ArrayList::new).add(register);
+            addresses.computeIfAbsent(register.getAddress((T)this),ArrayList::new).add(register);
         }
     }
 
     @SuppressWarnings("unchecked")
-    protected void addBits(IRegisterBit... bits){
-        for(IRegisterBit bit: bits){
+    protected void addBits(IRegisterBit<T>... bits){
+        for(IRegisterBit<T> bit: bits){
             this.bits.put(bit.name(),bit);
         }
     }
 
-    protected void addInterrupts(IInterrupt... interrupts){
-        for (IInterrupt interrupt :interrupts) {
+    protected void addInterrupts(IInterrupt<T>... interrupts){
+        for (IInterrupt<T> interrupt :interrupts) {
             this.interrupts.put(interrupt.getVector(),interrupt);
         }
     }

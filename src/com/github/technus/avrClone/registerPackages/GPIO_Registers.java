@@ -1,6 +1,6 @@
 package com.github.technus.avrClone.registerPackages;
 
-public class GPIO_Registers extends RegisterPackage {
+public class GPIO_Registers extends RegisterPackage<GPIO_Registers> {
     public GPIO_Registers(int offset){
         super(offset,0x10);
         addRegisters(Register.values());

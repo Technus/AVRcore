@@ -1,6 +1,6 @@
 package com.github.technus.avrClone.registerPackages;
 
-public class CPU_Registers extends RegisterPackage {
+public class CPU_Registers extends RegisterPackage<CPU_Registers> {
     public final int SREG,SP,defaultSP;
     public final static int
             I=RegisterBit.I.getBitMask(),
