@@ -52,6 +52,21 @@ dependencies {
     guiCompile files("libs/jsyntaxpane-1.1.5.jar")
 }
 
+task runGui(type: JavaExec) {
+    group = "build"
+    description = "Run the GUI for AVRcore"
+
+    classpath = sourceSets.gui.runtimeClasspath
+    classpath += sourceSets.gui.output
+    main = "com.github.technus.avrCloneGui.Main"
+
+    javaLauncher.set(
+            javaToolchains.launcherFor {
+                languageVersion = projectJavaVersion
+            }
+    )
+}
+
 jar {
     // Pulls version from git tag
     getArchiveVersion().set(gitVersion())
