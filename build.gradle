@@ -1,0 +1,104 @@
+plugins {
+    id 'application'
+    id 'idea'
+    id("com.palantir.git-version") version("0.12.3")
+}
+
+def projectJavaVersion = JavaLanguageVersion.of(8)
+
+java {
+    toolchain {
+        languageVersion.set(projectJavaVersion)
+    }
+}
+
+idea {
+    module {
+        inheritOutputDirs = true
+        downloadJavadoc = true
+        downloadSources = true
+    }
+}
+
+// Fix Jenkins' Git: chmod a file should not be detected as a change and append a '.dirty' to the version
+'git config core.fileMode false'.execute()
+
+group = projectGroup
+archivesBaseName = projectId
+
+application {
+    mainClass = 'com.github.technus.avrCloneGui.Main'
+}
+
+repositories {
+
+}
+
+configurations {
+    guiCompile
+}
+
+sourceSets {
+    gui {
+        compileClasspath = configurations.guiCompile
+        runtimeClasspath = configurations.guiCompile
+    }
+}
+
+dependencies {
+    guiCompile sourceSets.main.output
+
+    guiCompile files("libs/darcula.jar")
+    guiCompile files("libs/jsyntaxpane-1.1.5.jar")
+}
+
+jar {
+    // Pulls version from git tag
+    getArchiveVersion().set(gitVersion())
+
+    from sourceSets.main.output
+    from (file("$projectDir/LICENSE"))
+}
+
+task sourcesJar(type: Jar) {
+    // Pulls version from git tag
+    getArchiveVersion().set(gitVersion())
+
+    from sourceSets.main.output
+    from sourceSets.main.allJava
+    getArchiveClassifier().set('sources')
+}
+
+task guiJar(type: Jar) {
+    // Pulls version from git tag
+    getArchiveVersion().set(gitVersion())
+
+    from sourceSets.main.output
+    from sourceSets.gui.output
+    getArchiveClassifier().set('gui')
+
+    manifest {
+        attributes(["Main-Class" : "com.github.technus.avrCloneGui.Main"])
+    }
+}
+
+task guiSourcesJar(type: Jar) {
+    // Pulls version from git tag
+    getArchiveVersion().set(gitVersion())
+
+    from sourceSets.main.output
+    from sourceSets.main.allJava
+    from sourceSets.gui.output
+    from sourceSets.gui.allJava
+    getArchiveClassifier().set('gui-sources')
+
+    manifest {
+        attributes(["Main-Class" : "com.github.technus.avrCloneGui.Main"])
+    }
+}
+
+artifacts {
+    archives sourcesJar
+    //archives guiJar
+    //archives guiSourcesJar
+}
