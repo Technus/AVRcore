@@ -2,6 +2,7 @@ plugins {
     id 'application'
     id 'idea'
     id("com.palantir.git-version") version("0.12.3")
+    id("maven-publish")
 }
 
 def projectJavaVersion = JavaLanguageVersion.of(8)
@@ -116,4 +117,34 @@ artifacts {
     archives sourcesJar
     archives guiJar
     archives guiSourcesJar
+}
+
+// publishing
+publishing {
+    publications {
+        maven(MavenPublication) {
+            artifact source: jar
+            artifact source: sourcesJar, classifier: "src"
+            artifact source: guiJar, classifier: "gui"
+            artifact source: guiSourcesJar, classifier: "gui-sources"
+
+            groupId = System.getenv("ARTIFACT_GROUP_ID") ?: group
+            artifactId = System.getenv("ARTIFACT_ID") ?: project.name
+            version = System.getenv("ARTIFACT_VERSION") ?: project.version
+        }
+    }
+
+    repositories {
+        maven {
+            String owner = System.getenv("REPOSITORY_OWNER") ?: "Unknown"
+            String repositoryName = System.getenv("REPOSITORY_NAME") ?: "Unknown"
+            String githubRepositoryUrl = "https://maven.pkg.github.com/$owner/$repositoryName"
+            name = "GitHubPackages"
+            url = githubRepositoryUrl
+            credentials {
+                username = System.getenv("GITHUB_ACTOR") ?: "NONE"
+                password = System.getenv("GITHUB_TOKEN") ?: "NONE"
+            }
+        }
+    }
 }
