@@ -99,6 +99,6 @@ task guiSourcesJar(type: Jar) {
 
 artifacts {
     archives sourcesJar
-    //archives guiJar
-    //archives guiSourcesJar
+    archives guiJar
+    archives guiSourcesJar
 }
